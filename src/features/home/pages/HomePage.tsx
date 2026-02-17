@@ -294,9 +294,10 @@ const HomePage = () => {
 
   const handleShareEpisode = useCallback((episode: PodcastEpisode) => {
     const key = toEpisodeKey(episode);
-    const shared = new URL(window.location.href);
-    shared.searchParams.set('episode', key);
-    const link = shared.toString();
+    const current = new URL(window.location.href);
+    const params = new URLSearchParams(current.search);
+    params.set('episode', key);
+    const link = `qortal://APP/Q-Podcasts?${params.toString()}`;
 
     void copyToClipboard(link).then((isCopied) => {
       if (!isCopied) {
@@ -499,7 +500,7 @@ const HomePage = () => {
           />
         </section>
 
-        <section className="surface home-grid__panel">
+        <section className="surface home-grid__panel home-grid__category-panel">
           <CategoryFilterPanel
             categories={categoryOptions}
             selectedCategory={selectedCategory}

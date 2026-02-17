@@ -3,16 +3,20 @@
   height: 100%;
   min-height: 0;
   display: grid;
-  align-content: start;
   gap: 10px;
   overflow: hidden;
-  grid-template-rows: 320px auto minmax(200px, 20%) minmax(260px, 34%);
+  grid-template-rows: 320px max-content minmax(200px, 20%) minmax(260px, 34%);
 }
 
 .home-grid__top,
 .home-grid__panel {
   padding: 14px;
   min-height: 0;
+}
+
+.home-grid__category-panel {
+  align-self: start;
+  height: fit-content;
 }
 
 .featured-episode {

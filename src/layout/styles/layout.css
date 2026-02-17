@@ -88,12 +88,16 @@ body {
   display: grid;
   gap: 10px;
   grid-template-columns: 20% minmax(0, 60%) 20%;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .app-shell__sidebar {
   min-height: 0;
+  height: 100%;
   padding: 14px;
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .app-shell__main {
@@ -228,6 +232,7 @@ body {
   gap: 8px;
   flex: 1;
   min-height: 0;
+  overflow: auto;
 }
 
 .app-sidebar__primary-action {
@@ -302,10 +307,12 @@ body {
   gap: 8px;
 }
 
-.app-sidebar__footer {
+.app-shell__sidebar-footer {
   margin-top: auto;
+  padding-top: 8px;
   font-size: 12px;
   opacity: 0.75;
+  flex-shrink: 0;
 }
 
 .app-sidebar__tag-chip.weight-1 {
@@ -323,6 +330,7 @@ body {
 @media (max-width: 1024px) {
   .app-shell__content {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
       'main'
       'left'

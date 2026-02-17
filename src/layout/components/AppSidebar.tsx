@@ -46,7 +46,6 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         <button type="button" className="app-sidebar__primary-action" onClick={openPlaylists}>
           My Playists
         </button>
-        <small className="app-sidebar__footer">since 2026</small>
       </div>
     );
   }
@@ -101,7 +100,6 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
           );
         })}
       </div>
-      <small className="app-sidebar__footer">app v.0.1.0</small>
     </div>
   );
 };
