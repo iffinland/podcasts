@@ -1,0 +1,18 @@
+export const PODCAST_CATEGORIES = [
+  'Technology',
+  'Business',
+  'Education',
+  'Science',
+  'Health',
+  'News',
+  'Politics',
+  'Society & Culture',
+  'Arts',
+  'Music',
+  'Comedy',
+  'Sports',
+  'History',
+  'Religion & Spirituality',
+  'True Crime',
+  'Fiction',
+] as const;

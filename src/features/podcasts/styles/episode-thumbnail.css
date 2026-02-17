@@ -1,0 +1,28 @@
+.episode-thumb {
+  border-radius: 10px;
+  border: 1px solid #cdb596;
+  background: #f2dfc4;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.episode-thumb--sm {
+  width: 52px;
+  height: 52px;
+}
+
+.episode-thumb--md {
+  width: 72px;
+  height: 72px;
+}
+
+.episode-thumb--lg {
+  width: 120px;
+  height: 120px;
+}

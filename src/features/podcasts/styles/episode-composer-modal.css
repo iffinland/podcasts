@@ -32,7 +32,7 @@
 .episode-modal__form button,
 .episode-modal__form input,
 .episode-modal__form textarea {
-  border-radius: 8px;
+  border-radius: var(--button-radius);
   border: 1px solid #c7ad8b;
   background: #fff8ef;
   padding: 8px;
@@ -47,4 +47,29 @@
 .episode-modal__form label {
   display: grid;
   gap: 4px;
+}
+
+.episode-modal__categories {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #c7ad8b;
+  border-radius: 8px;
+  background: #fff8ef;
+}
+
+.episode-modal__categories legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.episode-modal__categories-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px;
+}
+
+.episode-modal__category-option {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
 }

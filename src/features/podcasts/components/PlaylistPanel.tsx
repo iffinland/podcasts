@@ -2,7 +2,9 @@ import { FormEvent, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
 import { PlaylistMap } from '../hooks/usePodcastSocial';
 import { toEpisodeKey } from '../hooks/podcastKeys';
+import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/playlist-panel.css';
+import '../styles/episode-thumbnail.css';
 
 interface PlaylistPanelProps {
   activeName: string | null;
@@ -13,7 +15,9 @@ interface PlaylistPanelProps {
   onCreatePlaylist: (name: string) => Promise<void>;
   onAddEpisode: (playlistName: string, episodeKey: string) => Promise<void>;
   onRemoveEpisode: (playlistName: string, episodeKey: string) => Promise<void>;
+  onPlayEpisode: (episode: PodcastEpisode) => Promise<void>;
   episodeIndex: Record<string, PodcastEpisode>;
+  thumbnailUrls: Record<string, string | null>;
 }
 
 const PlaylistPanel = ({
@@ -25,7 +29,9 @@ const PlaylistPanel = ({
   onCreatePlaylist,
   onAddEpisode,
   onRemoveEpisode,
+  onPlayEpisode,
   episodeIndex,
+  thumbnailUrls,
 }: PlaylistPanelProps) => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
@@ -104,8 +110,24 @@ const PlaylistPanel = ({
                 const episode = episodeIndex[episodeKey];
                 return (
                   <li key={episodeKey}>
-                    <span>{episode ? episode.title : episodeKey}</span>
+                    <div className="playlist-panel__episode">
+                      <EpisodeThumbnail
+                        src={thumbnailUrls[episodeKey] ?? null}
+                        alt={episode ? `${episode.title} thumbnail` : 'Episode thumbnail'}
+                        size="sm"
+                      />
+                      <span>{episode ? episode.title : episodeKey}</span>
+                    </div>
                     <button
+                      className="playlist-panel__action"
+                      type="button"
+                      onClick={() => episode && void onPlayEpisode(episode)}
+                      disabled={!episode}
+                    >
+                      Play
+                    </button>
+                    <button
+                      className="playlist-panel__action"
                       type="button"
                       onClick={() => void onRemoveEpisode(name, episodeKey)}
                     >

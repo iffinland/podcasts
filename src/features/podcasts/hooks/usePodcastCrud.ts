@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   deletePodcast,
   getAudioResourceUrl,
+  getThumbnailResourceUrl,
   publishPodcast,
   searchPodcasts,
   updatePodcast,
@@ -98,6 +99,10 @@ export const usePodcastCrud = () => {
     return getAudioResourceUrl(episode);
   }, []);
 
+  const resolveThumbnailUrl = useCallback(async (episode: PodcastEpisode) => {
+    return getThumbnailResourceUrl(episode);
+  }, []);
+
   return {
     episodes,
     isLoading,
@@ -108,5 +113,6 @@ export const usePodcastCrud = () => {
     editEpisode,
     removeEpisode,
     resolveAudioUrl,
+    resolveThumbnailUrl,
   };
 };

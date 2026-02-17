@@ -3,6 +3,9 @@
   --surface-bg: #f4e6d1;
   --field-bg: #fff8ef;
   --border-soft: #cfb99b;
+  --button-radius: 10px;
+  --button-shadow-rest: 0 2px 0 rgba(122, 92, 57, 0.4), 0 7px 14px rgba(50, 34, 12, 0.14);
+  --button-shadow-pressed: 0 1px 0 rgba(122, 92, 57, 0.4), 0 3px 8px rgba(50, 34, 12, 0.12);
 }
 
 * {
@@ -51,6 +54,29 @@ body {
   color: var(--text-tone);
 }
 
+.app-shell button {
+  cursor: pointer;
+  border-radius: var(--button-radius);
+  box-shadow: var(--button-shadow-rest);
+  transform: translateY(0);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.app-shell button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.app-shell button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--button-shadow-pressed);
+}
+
+.app-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  box-shadow: none;
+}
+
 .app-shell__header {
   width: 100%;
   padding: 14px 18px;
@@ -67,10 +93,13 @@ body {
 .app-shell__sidebar {
   min-height: 0;
   padding: 14px;
+  display: flex;
 }
 
 .app-shell__main {
   min-height: 0;
+  height: 100%;
+  display: flex;
 }
 
 .app-header__content {
@@ -194,18 +223,101 @@ body {
 }
 
 .app-sidebar__content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-content: start;
+  flex: 1;
+  min-height: 0;
 }
 
 .app-sidebar__primary-action {
   border: 1px solid var(--border-soft);
   background: var(--field-bg);
-  border-radius: 10px;
+  border-radius: var(--button-radius);
   padding: 8px 10px;
   text-align: left;
   font-family: inherit;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.app-sidebar__ranking {
+  display: grid;
+  gap: 8px;
+}
+
+.app-sidebar__ranking-item {
+  border: 1px solid #d8c4a8;
+  border-radius: 10px;
+  background: #fdf5e8;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.app-sidebar__ranking-item span {
+  font-size: 12px;
+}
+
+.app-sidebar__ranking-item button {
+  border: 1px solid var(--border-soft);
+  background: var(--field-bg);
+  border-radius: var(--button-radius);
+  padding: 6px 8px;
+  font-family: inherit;
+  width: fit-content;
+}
+
+.app-sidebar__tag-reset,
+.app-sidebar__tag-chip {
+  border: 1px solid var(--border-soft);
+  background: var(--field-bg);
+  border-radius: var(--button-radius);
+  padding: 6px 10px;
+  font-family: inherit;
+  width: fit-content;
+}
+
+.app-sidebar__content input[type='text'] {
+  border: 1px solid var(--border-soft);
+  background: var(--field-bg);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.app-sidebar__tag-reset.is-active,
+.app-sidebar__tag-chip.is-active {
+  background: #ead4b2;
+  border-color: #a78655;
+  font-weight: 700;
+}
+
+.app-sidebar__tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-sidebar__footer {
+  margin-top: auto;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.app-sidebar__tag-chip.weight-1 {
+  font-size: 12px;
+}
+
+.app-sidebar__tag-chip.weight-2 {
+  font-size: 14px;
+}
+
+.app-sidebar__tag-chip.weight-3 {
+  font-size: 16px;
 }
 
 @media (max-width: 1024px) {

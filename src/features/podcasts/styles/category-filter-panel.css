@@ -1,0 +1,36 @@
+.category-filter-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.category-filter-panel h3 {
+  margin: 0;
+}
+
+.category-filter-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.category-filter-panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-filter-panel button {
+  border-radius: var(--button-radius);
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  color: inherit;
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
+.category-filter-panel button.is-active {
+  background: #ead4b2;
+  border-color: #a78655;
+  font-weight: 700;
+}

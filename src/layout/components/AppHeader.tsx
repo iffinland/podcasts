@@ -18,6 +18,7 @@ const AppHeader = () => {
   const { activeName, availableNames, avatarUrl, isLoading, setActiveName } = useIdentity();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const logoSrc = `${import.meta.env.BASE_URL}podcast-logo-rounded-corner.png`;
 
   const initials = useMemo(() => initialsFromName(activeName), [activeName]);
 
@@ -42,9 +43,9 @@ const AppHeader = () => {
   return (
     <div className="app-header__content">
       <div className="app-header__brand">
-        <img src="/podcast-logo-raunded-corner.png" alt="Q-Podcasts logo" className="app-header__logo" />
+        <img src={logoSrc} alt="Q-Podcasts logo" className="app-header__logo" />
         <div className="app-header__title">
-          <h1>Q-Podcasts</h1>
+          <h1>Podcasts (BETA)</h1>
           <p>Podcast publishing and discovery on QDN</p>
         </div>
       </div>

@@ -1,0 +1,11 @@
+.send-tip__error {
+  margin: 0;
+  color: #8e3121;
+  font-weight: 700;
+}
+
+.send-tip__success {
+  margin: 0;
+  color: #3d6b32;
+  font-weight: 700;
+}

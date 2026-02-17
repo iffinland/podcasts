@@ -1,0 +1,27 @@
+.embed-code-modal {
+  width: min(760px, 100%);
+}
+
+.embed-code-modal__section {
+  display: grid;
+  gap: 8px;
+}
+
+.embed-code-modal__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.embed-code-modal textarea,
+.embed-code-modal button {
+  border-radius: var(--button-radius);
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.embed-code-modal textarea {
+  width: 100%;
+  resize: vertical;
+}

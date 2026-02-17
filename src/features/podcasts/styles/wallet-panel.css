@@ -25,7 +25,7 @@
 .wallet-panel__header button,
 .wallet-panel__form button,
 .wallet-panel__form input {
-  border-radius: 8px;
+  border-radius: var(--button-radius);
   border: 1px solid #c7ad8b;
   background: #fff8ef;
   padding: 8px;

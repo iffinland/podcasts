@@ -13,7 +13,9 @@ interface PlaylistManagerModalProps {
   onCreatePlaylist: (name: string) => Promise<void>;
   onAddEpisode: (playlistName: string, episodeKey: string) => Promise<void>;
   onRemoveEpisode: (playlistName: string, episodeKey: string) => Promise<void>;
+  onPlayEpisode: (episode: PodcastEpisode) => Promise<void>;
   episodeIndex: Record<string, PodcastEpisode>;
+  thumbnailUrls: Record<string, string | null>;
 }
 
 const PlaylistManagerModal = ({
@@ -27,7 +29,9 @@ const PlaylistManagerModal = ({
   onCreatePlaylist,
   onAddEpisode,
   onRemoveEpisode,
+  onPlayEpisode,
   episodeIndex,
+  thumbnailUrls,
 }: PlaylistManagerModalProps) => {
   if (!isOpen) {
     return null;
@@ -52,7 +56,9 @@ const PlaylistManagerModal = ({
           onCreatePlaylist={onCreatePlaylist}
           onAddEpisode={onAddEpisode}
           onRemoveEpisode={onRemoveEpisode}
+          onPlayEpisode={onPlayEpisode}
           episodeIndex={episodeIndex}
+          thumbnailUrls={thumbnailUrls}
         />
       </section>
     </div>

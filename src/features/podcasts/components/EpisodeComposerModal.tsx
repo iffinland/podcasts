@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
+import { PODCAST_CATEGORIES } from '../constants/podcastCategories';
 import '../styles/episode-composer-modal.css';
 
 interface EpisodeComposerModalProps {
@@ -14,14 +15,18 @@ interface EpisodeComposerModalProps {
     title: string;
     description: string;
     tags: string[];
+    categories: string[];
     audioFile: File;
+    thumbnailFile?: File;
   }) => Promise<void>;
   onEdit: (payload: {
     episode: PodcastEpisode;
     title: string;
     description: string;
     tags: string[];
+    categories: string[];
     newAudioFile?: File;
+    newThumbnailFile?: File;
   }) => Promise<void>;
 }
 
@@ -47,7 +52,9 @@ const EpisodeComposerModal = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -58,14 +65,18 @@ const EpisodeComposerModal = ({
       setTitle(editingEpisode.title);
       setDescription(editingEpisode.description);
       setTagsInput(tagsToText(editingEpisode.tags));
+      setCategories(editingEpisode.categories);
       setAudioFile(null);
+      setThumbnailFile(null);
       return;
     }
 
     setTitle('');
     setDescription('');
     setTagsInput('');
+    setCategories([]);
     setAudioFile(null);
+    setThumbnailFile(null);
   }, [isOpen, mode, editingEpisode]);
 
   const modalTitle = useMemo(() => {
@@ -84,6 +95,16 @@ const EpisodeComposerModal = ({
     return null;
   }
 
+  const toggleCategory = (category: string) => {
+    setCategories((previous) => {
+      if (previous.includes(category)) {
+        return previous.filter((item) => item !== category);
+      }
+
+      return [...previous, category];
+    });
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -99,7 +120,9 @@ const EpisodeComposerModal = ({
         title,
         description,
         tags,
+        categories,
         newAudioFile: audioFile ?? undefined,
+        newThumbnailFile: thumbnailFile ?? undefined,
       });
       onClose();
       return;
@@ -114,7 +137,9 @@ const EpisodeComposerModal = ({
       title,
       description,
       tags,
+      categories,
       audioFile,
+      thumbnailFile: thumbnailFile ?? undefined,
     });
     onClose();
   };
@@ -133,11 +158,6 @@ const EpisodeComposerModal = ({
         </div>
 
         <form className="episode-modal__form" onSubmit={(event) => void handleSubmit(event)}>
-          <label>
-            Publish as
-            <input type="text" value={activeName ?? ''} readOnly />
-          </label>
-
           <label>
             Title
             <input
@@ -171,6 +191,23 @@ const EpisodeComposerModal = ({
             />
           </label>
 
+          <fieldset className="episode-modal__categories">
+            <legend>Categories</legend>
+            <div className="episode-modal__categories-list">
+              {PODCAST_CATEGORIES.map((category) => (
+                <label key={category} className="episode-modal__category-option">
+                  <input
+                    type="checkbox"
+                    checked={categories.includes(category)}
+                    onChange={() => toggleCategory(category)}
+                    disabled={isSaving || !activeName}
+                  />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <label>
             Audio file {mode === 'edit' ? '(optional when editing)' : ''}
             <input
@@ -178,6 +215,16 @@ const EpisodeComposerModal = ({
               accept="audio/*"
               onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)}
               required={mode === 'create'}
+              disabled={isSaving || !activeName}
+            />
+          </label>
+
+          <label>
+            Thumbnail image (optional)
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)}
               disabled={isSaving || !activeName}
             />
           </label>

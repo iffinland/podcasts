@@ -27,3 +27,15 @@ export const sendQort = async ({ recipient, amount, coin = 'QORT' }: SendCoinInp
     amount,
   });
 };
+
+interface NameDataResponse {
+  owner: string;
+  name: string;
+}
+
+export const getNameData = async (name: string): Promise<NameDataResponse> => {
+  return requestQortal<NameDataResponse>({
+    action: 'GET_NAME_DATA',
+    name,
+  });
+};
