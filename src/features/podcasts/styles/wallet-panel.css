@@ -1,0 +1,52 @@
+.wallet-panel {
+  border: 1px solid #d8c4a8;
+  border-radius: 12px;
+  background: #f8ebd8;
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.wallet-panel h3,
+.wallet-panel p {
+  margin: 0;
+}
+
+.wallet-panel__header {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wallet-panel__header button,
+.wallet-panel__form button,
+.wallet-panel__form input {
+  border-radius: 8px;
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.wallet-panel__form {
+  display: grid;
+  gap: 8px;
+}
+
+.wallet-panel__form label {
+  display: grid;
+  gap: 4px;
+}
+
+.wallet-panel__error {
+  color: #8e3121;
+  font-weight: 700;
+}
+
+.wallet-panel--compact .wallet-panel__form {
+  grid-template-columns: 1fr;
+}

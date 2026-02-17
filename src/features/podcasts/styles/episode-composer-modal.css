@@ -1,0 +1,50 @@
+.episode-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 28, 12, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 12px;
+}
+
+.episode-modal {
+  width: min(680px, 100%);
+  max-height: min(92dvh, 920px);
+  overflow: auto;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.episode-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.episode-modal__head h3 {
+  margin: 0;
+}
+
+.episode-modal__head button,
+.episode-modal__form button,
+.episode-modal__form input,
+.episode-modal__form textarea {
+  border-radius: 8px;
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.episode-modal__form {
+  display: grid;
+  gap: 8px;
+}
+
+.episode-modal__form label {
+  display: grid;
+  gap: 4px;
+}

@@ -1,0 +1,88 @@
+.home-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: 40% 30% 30%;
+}
+
+.home-grid__top,
+.home-grid__panel {
+  padding: 14px;
+  min-height: 0;
+}
+
+.featured-episode {
+  height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.featured-episode h2,
+.featured-episode p,
+.featured-episode small {
+  margin: 0;
+}
+
+.featured-episode audio {
+  width: 100%;
+}
+
+.featured-episode__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.featured-episode__head button {
+  border-radius: 8px;
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 8px 10px;
+  font-family: inherit;
+}
+
+.recent-episodes {
+  height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.recent-episodes h3,
+.recent-episodes h4,
+.recent-episodes p {
+  margin: 0;
+}
+
+.recent-episodes__list {
+  display: grid;
+  gap: 8px;
+}
+
+.recent-episodes__item {
+  border: 1px solid #d8c4a8;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fdf5e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recent-episodes__item button {
+  border-radius: 8px;
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 8px;
+  font-family: inherit;
+}
+
+@media (max-width: 1024px) {
+  .home-grid {
+    grid-template-rows: auto auto auto;
+  }
+}
