@@ -4,6 +4,10 @@ See kaust sisaldab kahte skripti:
 - `backup-workspace.sh` — loob tööruumist backupi
 - `restore-workspace.sh` — taastab valitud backupi
 
+Lisaks on `package.json` failis mugavad npm käsud:
+- `npm run backup`
+- `npm run restore`
+
 ## Eeldused
 
 - Linux/macOS shell (bash)
@@ -16,6 +20,12 @@ Käivita projekti juurkaustast:
 
 ```bash
 ./scripts/backup-workspace.sh
+```
+
+või npm kaudu:
+
+```bash
+npm run backup
 ```
 
 Tulemus:
@@ -33,10 +43,22 @@ Vaikimisi jäetakse backupist välja suured/ajutised kaustad nagu `node_modules`
 ./scripts/restore-workspace.sh
 ```
 
+või npm kaudu:
+
+```bash
+npm run restore
+```
+
 ### Taasta kindlasse kausta
 
 ```bash
 ./scripts/restore-workspace.sh /tee/sihtkaust
+```
+
+Märkus: `npm run restore` annab argumendid edasi nii:
+
+```bash
+npm run restore -- /tee/sihtkaust
 ```
 
 Skript:
