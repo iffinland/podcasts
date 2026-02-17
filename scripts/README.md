@@ -1,10 +1,12 @@
 # Skriptide kasutusjuhend
 
 See kaust sisaldab kahte skripti:
+
 - `backup-workspace.sh` — loob tööruumist backupi
 - `restore-workspace.sh` — taastab valitud backupi
 
 Lisaks on `package.json` failis mugavad npm käsud:
+
 - `npm run backup`
 - `npm run restore`
 
@@ -29,6 +31,7 @@ npm run backup
 ```
 
 Tulemus:
+
 - Luakse ajatempliga backup kausta `../_workspace_backups/podcasts`
 - Hoitakse ainult 3 viimast backupi
 - Vanim backup eemaldatakse automaatselt
@@ -62,6 +65,7 @@ npm run restore -- /tee/sihtkaust
 ```
 
 Skript:
+
 - Kuvab backupide loendi
 - Laseb valida numbri alusel, millist backupi taastada
 - Küsib kinnitust, kui sihtkaust ei ole tühi
@@ -77,7 +81,7 @@ Skript:
 npm ci
 ```
 
-5. Kontrolli buildi:
+1. Kontrolli buildi:
 
 ```bash
 npm run build
