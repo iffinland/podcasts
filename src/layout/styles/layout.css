@@ -6,10 +6,35 @@
   --button-radius: 10px;
   --button-shadow-rest: 0 2px 0 rgba(122, 92, 57, 0.4), 0 7px 14px rgba(50, 34, 12, 0.14);
   --button-shadow-pressed: 0 1px 0 rgba(122, 92, 57, 0.4), 0 3px 8px rgba(50, 34, 12, 0.12);
+  --scrollbar-track: #efe1cd;
+  --scrollbar-thumb: #c2a178;
+  --scrollbar-thumb-hover: #ae8b59;
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 body {
@@ -30,10 +55,11 @@ body {
 }
 
 .app-shell {
+  height: 100dvh;
   min-height: 100dvh;
   padding: 10px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   color: var(--text-tone);
 }
@@ -89,11 +115,11 @@ body {
   gap: 10px;
   grid-template-columns: 20% minmax(0, 60%) 20%;
   grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .app-shell__sidebar {
   min-height: 0;
-  height: 100%;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -102,8 +128,13 @@ body {
 
 .app-shell__main {
   min-height: 0;
-  height: 100%;
   display: flex;
+  overflow: hidden;
+}
+
+.app-shell__main > * {
+  flex: 1;
+  min-height: 0;
 }
 
 .app-header__content {

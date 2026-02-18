@@ -5,7 +5,6 @@ import CategoryFilterPanel from '../../podcasts/components/CategoryFilterPanel';
 import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
 import FeaturedEpisodePanel from '../../podcasts/components/FeaturedEpisodePanel';
 import PlaylistManagerModal from '../../podcasts/components/PlaylistManagerModal';
-import PodcastCrudPanel from '../../podcasts/components/PodcastCrudPanel';
 import RecentEpisodesPanel from '../../podcasts/components/RecentEpisodesPanel';
 import SendTipModal from '../../podcasts/components/SendTipModal';
 import { useEpisodeComposer } from '../../podcasts/context/EpisodeComposerContext';
@@ -430,6 +429,8 @@ const HomePage = () => {
         activeName={activeName}
         editingEpisode={composer.editingEpisode}
         isSaving={podcastCrud.isSaving}
+        errorMessage={podcastCrud.error}
+        saveProgress={podcastCrud.saveProgress}
         onClose={composer.close}
         onCreate={async (payload) => {
           const created = await podcastCrud.createEpisode(payload);
@@ -483,6 +484,8 @@ const HomePage = () => {
         onClose={() => setEmbedEpisode(null)}
       />
 
+      {podcastCrud.error ? <p className="home-grid__error">{podcastCrud.error}</p> : null}
+
       <section className="home-grid">
         <section className="surface home-grid__top">
           <FeaturedEpisodePanel
@@ -518,40 +521,6 @@ const HomePage = () => {
           />
         </section>
 
-        <section className="surface home-grid__panel">
-          <PodcastCrudPanel
-            activeName={activeName}
-            episodes={filteredEpisodes}
-            selectedCategory={selectedCategory}
-            selectedTags={selectedTags}
-            thumbnailUrls={thumbnailUrls}
-            isLoading={podcastCrud.isLoading}
-            isSaving={podcastCrud.isSaving}
-            error={podcastCrud.error}
-            likedSet={likedByEpisodeKey}
-            likeCounts={likeCounts}
-            tipCounts={tipCounts}
-            onDeleteEpisode={async (episode) => {
-              await podcastCrud.removeEpisode(episode);
-              setThumbnailUrls((previous) => {
-                const next = { ...previous };
-                delete next[toEpisodeKey(episode)];
-                return next;
-              });
-
-              if (featuredEpisode?.episodeId === episode.episodeId) {
-                setFeaturedEpisode(null);
-                setFeaturedAudioUrl(null);
-              }
-            }}
-            onPlayEpisode={handlePlayEpisode}
-            onToggleLike={handleToggleLike}
-            onSendTip={handleSendTip}
-            onShareEpisode={handleShareEpisode}
-            onEmbedEpisode={handleEmbedEpisode}
-            onRequestEdit={composer.openEdit}
-          />
-        </section>
       </section>
     </>
   );

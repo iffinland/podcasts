@@ -44,6 +44,25 @@
   gap: 8px;
 }
 
+.episode-modal__status {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c7ad8b;
+  background: #fff2dd;
+  color: #5a3a18;
+  font-weight: 600;
+}
+
+.episode-modal__error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #c46868;
+  background: #ffecec;
+  color: #8b1f1f;
+}
+
 .episode-modal__form label {
   display: grid;
   gap: 4px;

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
 import { PODCAST_CATEGORIES } from '../constants/podcastCategories';
+import type { SaveProgress } from '../hooks/usePodcastCrud';
 import '../styles/episode-composer-modal.css';
 
 interface EpisodeComposerModalProps {
@@ -9,6 +10,8 @@ interface EpisodeComposerModalProps {
   activeName: string | null;
   editingEpisode: PodcastEpisode | null;
   isSaving: boolean;
+  errorMessage: string | null;
+  saveProgress: SaveProgress | null;
   onClose: () => void;
   onCreate: (payload: {
     ownerName: string;
@@ -45,6 +48,8 @@ const EpisodeComposerModal = ({
   activeName,
   editingEpisode,
   isSaving,
+  errorMessage,
+  saveProgress,
   onClose,
   onCreate,
   onEdit,
@@ -55,6 +60,7 @@ const EpisodeComposerModal = ({
   const [categories, setCategories] = useState<string[]>([]);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -68,6 +74,7 @@ const EpisodeComposerModal = ({
       setCategories(editingEpisode.categories);
       setAudioFile(null);
       setThumbnailFile(null);
+      setSubmitError(null);
       return;
     }
 
@@ -77,6 +84,7 @@ const EpisodeComposerModal = ({
     setCategories([]);
     setAudioFile(null);
     setThumbnailFile(null);
+    setSubmitError(null);
   }, [isOpen, mode, editingEpisode]);
 
   const modalTitle = useMemo(() => {
@@ -114,35 +122,49 @@ const EpisodeComposerModal = ({
 
     const tags = toTagsArray(tagsInput);
 
-    if (mode === 'edit' && editingEpisode) {
-      await onEdit({
-        episode: editingEpisode,
+    setSubmitError(null);
+
+    try {
+      if (mode === 'edit' && editingEpisode) {
+        await onEdit({
+          episode: editingEpisode,
+          title,
+          description,
+          tags,
+          categories,
+          newAudioFile: audioFile ?? undefined,
+          newThumbnailFile: thumbnailFile ?? undefined,
+        });
+        onClose();
+        return;
+      }
+
+      if (!audioFile) {
+        return;
+      }
+
+      await onCreate({
+        ownerName: activeName,
         title,
         description,
         tags,
         categories,
-        newAudioFile: audioFile ?? undefined,
-        newThumbnailFile: thumbnailFile ?? undefined,
+        audioFile,
+        thumbnailFile: thumbnailFile ?? undefined,
       });
       onClose();
-      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save episode.';
+      setSubmitError(message);
     }
-
-    if (!audioFile) {
-      return;
-    }
-
-    await onCreate({
-      ownerName: activeName,
-      title,
-      description,
-      tags,
-      categories,
-      audioFile,
-      thumbnailFile: thumbnailFile ?? undefined,
-    });
-    onClose();
   };
+
+  const visibleError = submitError ?? errorMessage;
+  const showProgress =
+    isSaving &&
+    saveProgress &&
+    ((mode === 'create' && saveProgress.operation === 'create') ||
+      (mode === 'edit' && saveProgress.operation === 'edit'));
 
   return (
     <div className="episode-modal__backdrop" onClick={onClose}>
@@ -158,6 +180,9 @@ const EpisodeComposerModal = ({
         </div>
 
         <form className="episode-modal__form" onSubmit={(event) => void handleSubmit(event)}>
+          {showProgress ? <p className="episode-modal__status">{saveProgress.message}</p> : null}
+          {visibleError ? <p className="episode-modal__error">{visibleError}</p> : null}
+
           <label>
             Title
             <input

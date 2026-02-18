@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useEpisodeComposer } from '../../features/podcasts/context/EpisodeComposerContext';
 import { useGlobalPlayback } from '../../features/podcasts/context/GlobalPlaybackContext';
 import { useTagFilter } from '../../features/podcasts/context/TagFilterContext';
@@ -9,20 +9,12 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ side }: AppSidebarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { openCreate, openPlaylists } = useEpisodeComposer();
   const { playEpisode } = useGlobalPlayback();
   const { topEpisodes } = useTopEpisodes();
   const { topTags, selectedTags, setSelectedTags } = useTagFilter();
-  const [tagSearch, setTagSearch] = useState('');
-
-  const normalizedSearch = tagSearch.trim().toLowerCase();
-  const visibleTags = useMemo(() => {
-    if (!normalizedSearch) {
-      return topTags;
-    }
-
-    return topTags.filter((item) => item.tag.toLowerCase().includes(normalizedSearch));
-  }, [normalizedSearch, topTags]);
 
   const toggleTag = (tag: string) => {
     const normalized = tag.toLowerCase();
@@ -46,6 +38,47 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         <button type="button" className="app-sidebar__primary-action" onClick={openPlaylists}>
           My Playists
         </button>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={() => void navigate(location.pathname === '/episodes' ? '/' : '/episodes')}
+        >
+          {location.pathname === '/episodes' ? 'Back to Home' : 'Browse all episodes'}
+        </button>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={() => void navigate(location.pathname === '/my-episodes' ? '/' : '/my-episodes')}
+        >
+          {location.pathname === '/my-episodes' ? 'Back to Home' : 'My Published Episodes'}
+        </button>
+        <h2>Top 20 Tags</h2>
+        <button
+          type="button"
+          className={`app-sidebar__tag-reset${selectedTags.length === 0 ? ' is-active' : ''}`}
+          onClick={() => setSelectedTags([])}
+        >
+          All Tags
+        </button>
+        {topTags.length === 0 ? <p>No tags yet.</p> : null}
+        <div className="app-sidebar__tag-cloud">
+          {topTags.map((item, index) => {
+            const weightClass = index < 5 ? 'weight-3' : index < 12 ? 'weight-2' : 'weight-1';
+            const isActive = selectedTags.some((tag) => tag.toLowerCase() === item.tag.toLowerCase());
+
+            return (
+              <button
+                key={item.tag}
+                type="button"
+                className={`app-sidebar__tag-chip ${weightClass}${isActive ? ' is-active' : ''}`}
+                onClick={() => toggleTag(item.tag)}
+                title={`${item.tag} (${item.count})`}
+              >
+                {item.tag} ({item.count})
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -65,40 +98,6 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
             </button>
           </article>
         ))}
-      </div>
-
-      <h2>Top 20 Tags</h2>
-      <input
-        type="text"
-        placeholder="Search tags..."
-        value={tagSearch}
-        onChange={(event) => setTagSearch(event.target.value)}
-      />
-      <button
-        type="button"
-        className={`app-sidebar__tag-reset${selectedTags.length === 0 ? ' is-active' : ''}`}
-        onClick={() => setSelectedTags([])}
-      >
-        All Tags
-      </button>
-      {topTags.length === 0 ? <p>No tags yet.</p> : null}
-      <div className="app-sidebar__tag-cloud">
-        {visibleTags.map((item, index) => {
-          const weightClass = index < 5 ? 'weight-3' : index < 12 ? 'weight-2' : 'weight-1';
-          const isActive = selectedTags.some((tag) => tag.toLowerCase() === item.tag.toLowerCase());
-
-          return (
-            <button
-              key={item.tag}
-              type="button"
-              className={`app-sidebar__tag-chip ${weightClass}${isActive ? ' is-active' : ''}`}
-              onClick={() => toggleTag(item.tag)}
-              title={`${item.tag} (${item.count})`}
-            >
-              {item.tag} ({item.count})
-            </button>
-          );
-        })}
       </div>
     </div>
   );

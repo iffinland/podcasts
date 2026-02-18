@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppWrapper } from './AppWrapper';
 import HomePage from './features/home/pages/HomePage';
+import BrowseEpisodesPage from './features/podcasts/pages/BrowseEpisodesPage';
+import MyPublishedEpisodesPage from './features/podcasts/pages/MyPublishedEpisodesPage';
 
 interface CustomWindow extends Window {
   _qdnBase: string;
@@ -18,6 +20,14 @@ const router = createBrowserRouter(
         {
           index: true,
           element: <HomePage />,
+        },
+        {
+          path: 'episodes',
+          element: <BrowseEpisodesPage />,
+        },
+        {
+          path: 'my-episodes',
+          element: <MyPublishedEpisodesPage />,
         },
       ],
     },

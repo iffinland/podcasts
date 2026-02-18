@@ -40,7 +40,7 @@ const RecentEpisodesPanel = ({
               <EpisodeThumbnail
                 src={thumbnailUrls[toEpisodeKey(episode)] ?? null}
                 alt={`${episode.title} thumbnail`}
-                size="md"
+                size="sm"
               />
               <div>
               <h4>{episode.title}</h4>

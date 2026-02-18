@@ -12,12 +12,37 @@ const PODCAST_METADATA_SERVICE = 'PODCAST';
 const PODCAST_AUDIO_SERVICE = 'AUDIO';
 const PODCAST_IMAGE_SERVICE = 'IMAGE';
 const PODCAST_IDENTIFIER_PREFIX = 'qpodcasts-episode-';
+const MAX_TAGS = 20;
+const MAX_TAG_LENGTH = 40;
+const MAX_CATEGORIES = 8;
+const MAX_CATEGORY_LENGTH = 48;
+const MAX_AUDIO_SIZE_BYTES = 250 * 1024 * 1024;
+const MAX_THUMBNAIL_SIZE_BYTES = 10 * 1024 * 1024;
+const METADATA_VERIFY_RETRIES = 5;
+const METADATA_VERIFY_DELAY_MS = 1500;
 
 interface SearchQdnResourceResult {
   name: string;
   identifier: string;
   created?: number;
   updated?: number;
+}
+
+export type PublishProgressStep =
+  | 'validating'
+  | 'uploading-audio'
+  | 'uploading-thumbnail'
+  | 'publishing-metadata'
+  | 'verifying-metadata'
+  | 'completed';
+
+export interface PublishProgressUpdate {
+  step: PublishProgressStep;
+  message: string;
+}
+
+interface PublishOptions {
+  onProgress?: (update: PublishProgressUpdate) => void;
 }
 
 const createEpisodeId = (): string => {
@@ -42,6 +67,61 @@ const toThumbnailIdentifier = (episodeId: string) => {
 
 const mergeTagsAndCategories = (tags: string[], categories: string[]): string[] => {
   return Array.from(new Set([...tags, ...categories]));
+};
+
+const sleep = async (durationMs: number) => {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, durationMs);
+  });
+};
+
+const normalizeList = (items: string[]): string[] => {
+  return Array.from(
+    new Set(
+      items
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    )
+  );
+};
+
+const validateTagsAndCategories = (tags: string[], categories: string[]) => {
+  if (tags.length > MAX_TAGS) {
+    throw new Error(`Too many tags. Maximum allowed is ${MAX_TAGS}.`);
+  }
+
+  if (categories.length > MAX_CATEGORIES) {
+    throw new Error(`Too many categories. Maximum allowed is ${MAX_CATEGORIES}.`);
+  }
+
+  const invalidTag = tags.find((tag) => tag.length > MAX_TAG_LENGTH);
+  if (invalidTag) {
+    throw new Error(`Tag "${invalidTag}" is too long. Max length is ${MAX_TAG_LENGTH}.`);
+  }
+
+  const invalidCategory = categories.find((category) => category.length > MAX_CATEGORY_LENGTH);
+  if (invalidCategory) {
+    throw new Error(
+      `Category "${invalidCategory}" is too long. Max length is ${MAX_CATEGORY_LENGTH}.`
+    );
+  }
+};
+
+const validateFileSize = (file: File, maxSizeBytes: number, label: string) => {
+  if (file.size <= maxSizeBytes) {
+    return;
+  }
+
+  const maxSizeMb = Math.round(maxSizeBytes / (1024 * 1024));
+  throw new Error(`${label} is too large (${file.name}). Maximum allowed size is ${maxSizeMb} MB.`);
+};
+
+const emitProgress = (
+  options: PublishOptions | undefined,
+  step: PublishProgressStep,
+  message: string
+) => {
+  options?.onProgress?.({ step, message });
 };
 
 const encodeBase64Json = (value: unknown): string => {
@@ -284,32 +364,86 @@ const resolveOwnerName = async (providedName?: string): Promise<string> => {
   throw new Error('Authenticated user has no Qortal name. Register a name first.');
 };
 
-export const publishPodcast = async (input: PublishPodcastInput): Promise<PodcastEpisode> => {
+const verifyMetadataPublication = async (
+  ownerName: string,
+  metadataIdentifier: string,
+  expectedEpisodeId: string
+) => {
+  for (let attempt = 1; attempt <= METADATA_VERIFY_RETRIES; attempt += 1) {
+    try {
+      const rawMetadata = await requestQortal<unknown>({
+        action: 'FETCH_QDN_RESOURCE',
+        service: PODCAST_METADATA_SERVICE,
+        name: ownerName,
+        identifier: metadataIdentifier,
+      });
+
+      const parsedMetadata = parsePodcastMetadata(rawMetadata);
+      if (parsedMetadata && parsedMetadata.episodeId === expectedEpisodeId) {
+        return;
+      }
+    } catch {
+      // Retry until attempts are exhausted.
+    }
+
+    if (attempt < METADATA_VERIFY_RETRIES) {
+      await sleep(METADATA_VERIFY_DELAY_MS);
+    }
+  }
+
+  throw new Error(
+    'Publish was submitted but metadata could not be verified on QDN yet. Please refresh in a minute.'
+  );
+};
+
+export const publishPodcast = async (
+  input: PublishPodcastInput,
+  options?: PublishOptions
+): Promise<PodcastEpisode> => {
   const ownerName = await resolveOwnerName(input.ownerName);
   const episodeId = createEpisodeId();
   const metadataIdentifier = toMetadataIdentifier(episodeId);
   const audioIdentifier = toAudioIdentifier(episodeId);
   const thumbnailIdentifier = toThumbnailIdentifier(episodeId);
+  const tags = normalizeList(input.tags);
+  const categories = normalizeList(input.categories);
   const now = Date.now();
+  let publishedThumbnail = false;
 
+  emitProgress(options, 'validating', 'Validating episode data...');
+  validateTagsAndCategories(tags, categories);
+  validateFileSize(input.audioFile, MAX_AUDIO_SIZE_BYTES, 'Audio file');
+  if (input.thumbnailFile) {
+    validateFileSize(input.thumbnailFile, MAX_THUMBNAIL_SIZE_BYTES, 'Thumbnail image');
+  }
+
+  emitProgress(options, 'uploading-audio', 'Uploading audio file to QDN...');
   await publishAudioFile(
     ownerName,
     audioIdentifier,
     input.title,
     input.description,
-    mergeTagsAndCategories(input.tags, input.categories),
+    mergeTagsAndCategories(tags, categories),
     input.audioFile
   );
 
   if (input.thumbnailFile) {
-    await publishThumbnailFile(
-      ownerName,
-      thumbnailIdentifier,
-      input.title,
-      input.description,
-      mergeTagsAndCategories(input.tags, input.categories),
-      input.thumbnailFile
-    );
+    emitProgress(options, 'uploading-thumbnail', 'Uploading thumbnail to QDN...');
+
+    try {
+      await publishThumbnailFile(
+        ownerName,
+        thumbnailIdentifier,
+        input.title,
+        input.description,
+        mergeTagsAndCategories(tags, categories),
+        input.thumbnailFile
+      );
+
+      publishedThumbnail = true;
+    } catch (error) {
+      console.warn('[podcast] thumbnail publish failed, continuing without thumbnail', error);
+    }
   }
 
   const metadata: PodcastMetadata = {
@@ -317,8 +451,8 @@ export const publishPodcast = async (input: PublishPodcastInput): Promise<Podcas
     episodeId,
     title: input.title,
     description: input.description,
-    tags: input.tags,
-    categories: input.categories,
+    tags,
+    categories,
     createdAt: now,
     updatedAt: now,
     status: 'active',
@@ -328,7 +462,7 @@ export const publishPodcast = async (input: PublishPodcastInput): Promise<Podcas
       name: ownerName,
       filename: input.audioFile.name,
     },
-    thumbnail: input.thumbnailFile
+    thumbnail: input.thumbnailFile && publishedThumbnail
       ? {
           service: PODCAST_IMAGE_SERVICE,
           identifier: thumbnailIdentifier,
@@ -338,7 +472,13 @@ export const publishPodcast = async (input: PublishPodcastInput): Promise<Podcas
       : null,
   };
 
+  emitProgress(options, 'publishing-metadata', 'Publishing episode metadata to QDN...');
   await publishMetadata(ownerName, metadataIdentifier, metadata);
+
+  emitProgress(options, 'verifying-metadata', 'Verifying metadata availability on QDN...');
+  await verifyMetadataPublication(ownerName, metadataIdentifier, episodeId);
+  emitProgress(options, 'completed', 'Publish completed.');
+
   return buildEpisodeFromMetadata(ownerName, metadataIdentifier, metadata);
 };
 
@@ -391,29 +531,54 @@ export const searchPodcasts = async (
     .sort((first, second) => second.updatedAt - first.updatedAt);
 };
 
-export const updatePodcast = async (input: UpdatePodcastInput): Promise<PodcastEpisode> => {
+export const updatePodcast = async (
+  input: UpdatePodcastInput,
+  options?: PublishOptions
+): Promise<PodcastEpisode> => {
   const { episode, title, description, tags, newAudioFile, newThumbnailFile } = input;
+  const normalizedTags = normalizeList(tags);
+  const normalizedCategories = normalizeList(input.categories);
+  let publishedThumbnail = Boolean(episode.thumbnail);
+
+  emitProgress(options, 'validating', 'Validating updated episode data...');
+  validateTagsAndCategories(normalizedTags, normalizedCategories);
+  if (newAudioFile) {
+    validateFileSize(newAudioFile, MAX_AUDIO_SIZE_BYTES, 'Audio file');
+  }
+  if (newThumbnailFile) {
+    validateFileSize(newThumbnailFile, MAX_THUMBNAIL_SIZE_BYTES, 'Thumbnail image');
+  }
 
   if (newAudioFile) {
+    emitProgress(options, 'uploading-audio', 'Uploading updated audio file to QDN...');
     await publishAudioFile(
       episode.ownerName,
       episode.audio.identifier,
       title,
       description,
-      mergeTagsAndCategories(tags, input.categories),
+      mergeTagsAndCategories(normalizedTags, normalizedCategories),
       newAudioFile
     );
   }
 
   if (newThumbnailFile) {
-    await publishThumbnailFile(
-      episode.ownerName,
-      episode.thumbnail?.identifier ?? toThumbnailIdentifier(episode.episodeId),
-      title,
-      description,
-      mergeTagsAndCategories(tags, input.categories),
-      newThumbnailFile
-    );
+    emitProgress(options, 'uploading-thumbnail', 'Uploading updated thumbnail to QDN...');
+
+    try {
+      await publishThumbnailFile(
+        episode.ownerName,
+        episode.thumbnail?.identifier ?? toThumbnailIdentifier(episode.episodeId),
+        title,
+        description,
+        mergeTagsAndCategories(normalizedTags, normalizedCategories),
+        newThumbnailFile
+      );
+
+      publishedThumbnail = true;
+    } catch (error) {
+      publishedThumbnail = false;
+      console.warn('[podcast] thumbnail update failed, continuing without thumbnail', error);
+    }
   }
 
   const updatedMetadata: PodcastMetadata = {
@@ -421,8 +586,8 @@ export const updatePodcast = async (input: UpdatePodcastInput): Promise<PodcastE
     episodeId: episode.episodeId,
     title,
     description,
-    tags,
-    categories: input.categories,
+    tags: normalizedTags,
+    categories: normalizedCategories,
     createdAt: episode.createdAt,
     updatedAt: Date.now(),
     status: 'active',
@@ -431,16 +596,22 @@ export const updatePodcast = async (input: UpdatePodcastInput): Promise<PodcastE
       filename: newAudioFile ? newAudioFile.name : episode.audio.filename,
     },
     thumbnail: newThumbnailFile
+      ? publishedThumbnail
       ? {
           service: PODCAST_IMAGE_SERVICE,
           identifier: episode.thumbnail?.identifier ?? toThumbnailIdentifier(episode.episodeId),
           name: episode.ownerName,
           filename: newThumbnailFile.name,
         }
+      : null
       : episode.thumbnail,
   };
 
+  emitProgress(options, 'publishing-metadata', 'Publishing updated metadata to QDN...');
   await publishMetadata(episode.ownerName, episode.metadataIdentifier, updatedMetadata);
+  emitProgress(options, 'verifying-metadata', 'Verifying updated metadata on QDN...');
+  await verifyMetadataPublication(episode.ownerName, episode.metadataIdentifier, episode.episodeId);
+  emitProgress(options, 'completed', 'Update completed.');
   return buildEpisodeFromMetadata(episode.ownerName, episode.metadataIdentifier, updatedMetadata);
 };
 

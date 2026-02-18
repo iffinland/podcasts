@@ -5,27 +5,6 @@
   padding: 0;
   overflow: auto;
   height: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: #c2a178 #efe1cd;
-}
-
-.podcast-crud__list-wrap::-webkit-scrollbar {
-  width: 10px;
-}
-
-.podcast-crud__list-wrap::-webkit-scrollbar-track {
-  background: #efe1cd;
-  border-radius: 10px;
-}
-
-.podcast-crud__list-wrap::-webkit-scrollbar-thumb {
-  background: #c2a178;
-  border-radius: 10px;
-  border: 2px solid #efe1cd;
-}
-
-.podcast-crud__list-wrap::-webkit-scrollbar-thumb:hover {
-  background: #ae8b59;
 }
 
 .podcast-crud__list-wrap h3,

@@ -7,13 +7,21 @@ import {
   searchPodcasts,
   updatePodcast,
 } from '../../../services/qdn/podcastQdnService';
+import type { PublishProgressUpdate } from '../../../services/qdn/podcastQdnService';
 import { PodcastEpisode, PublishPodcastInput, UpdatePodcastInput } from '../../../types/podcast';
+
+export interface SaveProgress {
+  operation: 'create' | 'edit' | 'delete';
+  step: PublishProgressUpdate['step'];
+  message: string;
+}
 
 export const usePodcastCrud = () => {
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveProgress, setSaveProgress] = useState<SaveProgress | null>(null);
 
   const loadEpisodes = useCallback(async () => {
     setIsLoading(true);
@@ -37,9 +45,22 @@ export const usePodcastCrud = () => {
   const createEpisode = useCallback(async (input: PublishPodcastInput) => {
     setIsSaving(true);
     setError(null);
+    setSaveProgress({
+      operation: 'create',
+      step: 'validating',
+      message: 'Preparing publish...',
+    });
 
     try {
-      const created = await publishPodcast(input);
+      const created = await publishPodcast(input, {
+        onProgress: (update) => {
+          setSaveProgress({
+            operation: 'create',
+            step: update.step,
+            message: update.message,
+          });
+        },
+      });
       setEpisodes((previous) => [created, ...previous]);
       return created;
     } catch (saveError) {
@@ -54,9 +75,22 @@ export const usePodcastCrud = () => {
   const editEpisode = useCallback(async (input: UpdatePodcastInput) => {
     setIsSaving(true);
     setError(null);
+    setSaveProgress({
+      operation: 'edit',
+      step: 'validating',
+      message: 'Preparing update...',
+    });
 
     try {
-      const updated = await updatePodcast(input);
+      const updated = await updatePodcast(input, {
+        onProgress: (update) => {
+          setSaveProgress({
+            operation: 'edit',
+            step: update.step,
+            message: update.message,
+          });
+        },
+      });
       setEpisodes((previous) =>
         previous.map((episode) =>
           episode.episodeId === updated.episodeId && episode.ownerName === updated.ownerName
@@ -77,6 +111,11 @@ export const usePodcastCrud = () => {
   const removeEpisode = useCallback(async (episode: PodcastEpisode) => {
     setIsSaving(true);
     setError(null);
+    setSaveProgress({
+      operation: 'delete',
+      step: 'publishing-metadata',
+      message: 'Deleting episode...',
+    });
 
     try {
       await deletePodcast(episode);
@@ -108,6 +147,7 @@ export const usePodcastCrud = () => {
     isLoading,
     isSaving,
     error,
+    saveProgress,
     loadEpisodes,
     createEpisode,
     editEpisode,
