@@ -31,7 +31,7 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
   if (side === 'left') {
     return (
       <div className="app-sidebar__content">
-        <h2>Navigatsion</h2>
+        <h2>Menu</h2>
         <button type="button" className="app-sidebar__primary-action" onClick={openCreate}>
           Publish new episode
         </button>
