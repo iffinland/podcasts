@@ -17,14 +17,22 @@ const formatTimestamp = (value: number): string => {
   return new Date(value).toLocaleString();
 };
 
-const EpisodeDetailsModal = ({ isOpen, episode, thumbnailUrl, onClose }: EpisodeDetailsModalProps) => {
+const EpisodeDetailsModal = ({
+  isOpen,
+  episode,
+  thumbnailUrl,
+  onClose,
+}: EpisodeDetailsModalProps) => {
   if (!isOpen || !episode) {
     return null;
   }
 
   return (
     <div className="episode-modal__backdrop" onClick={onClose}>
-      <section className="episode-modal surface episode-details-modal" onClick={(event) => event.stopPropagation()}>
+      <section
+        className="episode-modal surface episode-details-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="episode-modal__head">
           <h3>Episode details</h3>
           <button type="button" onClick={onClose}>
@@ -33,7 +41,11 @@ const EpisodeDetailsModal = ({ isOpen, episode, thumbnailUrl, onClose }: Episode
         </div>
 
         <div className="episode-details-modal__hero">
-          <EpisodeThumbnail src={thumbnailUrl} alt={`${episode.title} thumbnail`} size="lg" />
+          <EpisodeThumbnail
+            src={thumbnailUrl}
+            alt={`${episode.title} thumbnail`}
+            size="lg"
+          />
           <div className="episode-details-modal__hero-text">
             <h4>{episode.title}</h4>
             <p>@{episode.ownerName}</p>
@@ -68,7 +80,9 @@ const EpisodeDetailsModal = ({ isOpen, episode, thumbnailUrl, onClose }: Episode
           <p>Audio file: {episode.audio.filename}</p>
           <p>Audio identifier: {episode.audio.identifier}</p>
           <p>Thumbnail: {episode.thumbnail?.filename ?? 'No thumbnail'}</p>
-          {episode.thumbnail ? <p>Thumbnail identifier: {episode.thumbnail.identifier}</p> : null}
+          {episode.thumbnail ? (
+            <p>Thumbnail identifier: {episode.thumbnail.identifier}</p>
+          ) : null}
         </div>
       </section>
     </div>

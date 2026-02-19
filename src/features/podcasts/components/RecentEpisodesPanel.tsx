@@ -28,21 +28,32 @@ const RecentEpisodesPanel = ({
   const latest = episodes.slice(0, 4);
   const filterSuffix = [
     selectedCategory,
-    selectedTags.length > 0 ? selectedTags.map((tag) => `#${tag}`).join(', ') : null,
+    selectedTags.length > 0
+      ? selectedTags.map((tag) => `#${tag}`).join(', ')
+      : null,
   ]
     .filter(Boolean)
     .join(' + ');
 
   return (
     <section className="recent-episodes">
-      <h3>{filterSuffix ? `Latest 4: ${filterSuffix}` : 'Latest 4 Episodes'}</h3>
+      <h3>
+        {filterSuffix ? `Latest 4: ${filterSuffix}` : 'Latest 4 Episodes'}
+      </h3>
       {latest.length === 0 ? (
-        <p>{filterSuffix ? `No episodes for ${filterSuffix}.` : 'No fresh episodes yet.'}</p>
+        <p>
+          {filterSuffix
+            ? `No episodes for ${filterSuffix}.`
+            : 'No fresh episodes yet.'}
+        </p>
       ) : null}
 
       <div className="recent-episodes__list">
         {latest.map((episode) => (
-          <article key={`${episode.ownerName}-${episode.episodeId}`} className="recent-episodes__item">
+          <article
+            key={`${episode.ownerName}-${episode.episodeId}`}
+            className="recent-episodes__item"
+          >
             <div className="recent-episodes__meta">
               <EpisodeThumbnail
                 src={thumbnailUrls[toEpisodeKey(episode)] ?? null}
@@ -52,7 +63,9 @@ const RecentEpisodesPanel = ({
               <div className="recent-episodes__text">
                 <h4>{episode.title}</h4>
                 <p>@{episode.ownerName}</p>
-                <p className="recent-episodes__description">{buildPreview(episode.description)}</p>
+                <p className="recent-episodes__description">
+                  {buildPreview(episode.description)}
+                </p>
               </div>
             </div>
             <button type="button" onClick={() => void onPlayEpisode(episode)}>

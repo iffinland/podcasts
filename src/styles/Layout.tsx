@@ -24,7 +24,9 @@ const Layout = () => {
               <div className="app-shell__content">
                 <aside className="surface app-shell__sidebar">
                   <AppSidebar side="left" />
-                  <small className="app-shell__sidebar-footer">since 2026</small>
+                  <small className="app-shell__sidebar-footer">
+                    since 2026
+                  </small>
                 </aside>
 
                 <main className="app-shell__main">
@@ -33,7 +35,9 @@ const Layout = () => {
 
                 <aside className="surface app-shell__sidebar">
                   <AppSidebar side="right" />
-                  <small className="app-shell__sidebar-footer">app v.0.1.1</small>
+                  <small className="app-shell__sidebar-footer">
+                    app v.0.1.1
+                  </small>
                 </aside>
               </div>
             </div>

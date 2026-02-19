@@ -19,7 +19,10 @@ type TagAccumulator = {
 
 type SortOrder = 'title-asc' | 'title-desc' | 'owner-asc' | 'owner-desc';
 
-const buildPreview = (value: string, limit = 200): { text: string; isLong: boolean } => {
+const buildPreview = (
+  value: string,
+  limit = 200
+): { text: string; isLong: boolean } => {
   if (!value) {
     return { text: '', isLong: false };
   }
@@ -55,8 +58,12 @@ const BrowseEpisodesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('title-asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string | null>>({});
-  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(null);
+  const [thumbnailUrls, setThumbnailUrls] = useState<
+    Record<string, string | null>
+  >({});
+  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
 
   useEffect(() => {
     const missing = episodes.filter((episode) => {
@@ -100,19 +107,22 @@ const BrowseEpisodesPage = () => {
   }, [episodes, resolveThumbnailUrl, thumbnailUrls]);
 
   useEffect(() => {
-    const map = episodes.reduce<Map<string, TagAccumulator>>((accumulator, episode) => {
-      episode.tags.forEach((tag) => {
-        const normalized = tag.toLowerCase();
-        const existing = accumulator.get(normalized);
-        if (existing) {
-          existing.count += 1;
-          return;
-        }
+    const map = episodes.reduce<Map<string, TagAccumulator>>(
+      (accumulator, episode) => {
+        episode.tags.forEach((tag) => {
+          const normalized = tag.toLowerCase();
+          const existing = accumulator.get(normalized);
+          if (existing) {
+            existing.count += 1;
+            return;
+          }
 
-        accumulator.set(normalized, { count: 1, label: tag });
-      });
-      return accumulator;
-    }, new Map<string, TagAccumulator>());
+          accumulator.set(normalized, { count: 1, label: tag });
+        });
+        return accumulator;
+      },
+      new Map<string, TagAccumulator>()
+    );
 
     const ranked = Array.from(map.entries())
       .sort(([, left], [, right]) => right.count - left.count)
@@ -129,38 +139,61 @@ const BrowseEpisodesPage = () => {
 
   const filteredEpisodes = useMemo(() => {
     const filtered = episodes.filter((episode) => {
-      const categoryMatches = !selectedCategory || episode.categories.includes(selectedCategory);
+      const categoryMatches =
+        !selectedCategory || episode.categories.includes(selectedCategory);
       const tagsMatch =
         selectedTags.length === 0 ||
         selectedTags.every((tag) =>
-          episode.tags.some((episodeTag) => episodeTag.toLowerCase() === tag.toLowerCase())
+          episode.tags.some(
+            (episodeTag) => episodeTag.toLowerCase() === tag.toLowerCase()
+          )
         );
-      const searchable = `${episode.title} ${episode.description} ${episode.ownerName}`.toLowerCase();
-      const searchMatches = normalizedQuery.length === 0 || searchable.includes(normalizedQuery);
+      const searchable =
+        `${episode.title} ${episode.description} ${episode.ownerName}`.toLowerCase();
+      const searchMatches =
+        normalizedQuery.length === 0 || searchable.includes(normalizedQuery);
 
       return categoryMatches && tagsMatch && searchMatches;
     });
 
     return filtered.sort((left, right) => {
       if (sortOrder === 'owner-asc' || sortOrder === 'owner-desc') {
-        const ownerResult = left.ownerName.localeCompare(right.ownerName, undefined, { sensitivity: 'base' });
+        const ownerResult = left.ownerName.localeCompare(
+          right.ownerName,
+          undefined,
+          { sensitivity: 'base' }
+        );
         return sortOrder === 'owner-asc' ? ownerResult : -ownerResult;
       }
 
-      const titleResult = left.title.localeCompare(right.title, undefined, { sensitivity: 'base' });
+      const titleResult = left.title.localeCompare(right.title, undefined, {
+        sensitivity: 'base',
+      });
       return sortOrder === 'title-asc' ? titleResult : -titleResult;
     });
   }, [episodes, normalizedQuery, selectedCategory, selectedTags, sortOrder]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredEpisodes.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEpisodes.length / PAGE_SIZE)
+  );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, selectedTags, searchQuery, sortOrder, filteredEpisodes.length]);
+  }, [
+    selectedCategory,
+    selectedTags,
+    searchQuery,
+    sortOrder,
+    filteredEpisodes.length,
+  ]);
 
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * PAGE_SIZE;
-  const pageEpisodes = filteredEpisodes.slice(startIndex, startIndex + PAGE_SIZE);
+  const pageEpisodes = filteredEpisodes.slice(
+    startIndex,
+    startIndex + PAGE_SIZE
+  );
   const pageNumbers = getVisiblePageNumbers(safePage, totalPages);
 
   const handlePlayFromBrowse = (key: string) => {
@@ -175,66 +208,88 @@ const BrowseEpisodesPage = () => {
       <EpisodeDetailsModal
         isOpen={Boolean(detailsEpisode)}
         episode={detailsEpisode}
-        thumbnailUrl={detailsEpisode ? thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null : null}
+        thumbnailUrl={
+          detailsEpisode
+            ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
+            : null
+        }
         onClose={() => setDetailsEpisode(null)}
       />
       <section className="surface browse-episodes">
         <header className="browse-episodes__header">
           <h2>Browse All Episodes</h2>
           <p>
-            Showing {pageEpisodes.length === 0 ? 0 : startIndex + 1}-{startIndex + pageEpisodes.length} of{' '}
-            {filteredEpisodes.length}
+            Showing {pageEpisodes.length === 0 ? 0 : startIndex + 1}-
+            {startIndex + pageEpisodes.length} of {filteredEpisodes.length}
           </p>
         </header>
 
-      <div className="browse-episodes__filters">
-        <label className="browse-episodes__search">
-          Search
-          <input
-            type="text"
-            placeholder="Title, description, @name"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </label>
+        <div className="browse-episodes__filters">
+          <label className="browse-episodes__search">
+            Search
+            <input
+              type="text"
+              placeholder="Title, description, @name"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </label>
 
-        <label>
-          Category
-          <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
-            <option value="">All categories</option>
-            {PODCAST_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label>
+            Category
+            <select
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+            >
+              <option value="">All categories</option>
+              {PODCAST_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          Sort
-          <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as SortOrder)}>
-            <option value="title-asc">Title A-Z</option>
-            <option value="title-desc">Title Z-A</option>
-            <option value="owner-asc">Owner A-Z</option>
-            <option value="owner-desc">Owner Z-A</option>
-          </select>
-        </label>
+          <label>
+            Sort
+            <select
+              value={sortOrder}
+              onChange={(event) =>
+                setSortOrder(event.target.value as SortOrder)
+              }
+            >
+              <option value="title-asc">Title A-Z</option>
+              <option value="title-desc">Title Z-A</option>
+              <option value="owner-asc">Owner A-Z</option>
+              <option value="owner-desc">Owner Z-A</option>
+            </select>
+          </label>
 
-        <button type="button" onClick={() => setSelectedTags([])} disabled={selectedTags.length === 0}>
-          Clear tag filter
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setSelectedTags([])}
+            disabled={selectedTags.length === 0}
+          >
+            Clear tag filter
+          </button>
+        </div>
 
-      {isLoading ? <p>Loading episodes...</p> : null}
-      {error ? <p className="browse-episodes__error">{error}</p> : null}
-      {!isLoading && pageEpisodes.length === 0 ? <p>No episodes found for current filters.</p> : null}
+        {isLoading ? <p>Loading episodes...</p> : null}
+        {error ? <p className="browse-episodes__error">{error}</p> : null}
+        {!isLoading && pageEpisodes.length === 0 ? (
+          <p>No episodes found for current filters.</p>
+        ) : null}
 
         <div className="browse-episodes__list">
           {pageEpisodes.map((episode) => {
             const key = toEpisodeKey(episode);
             return (
               <article key={key} className="browse-episodes__item">
-                <EpisodeThumbnail src={thumbnailUrls[key] ?? null} alt={`${episode.title} thumbnail`} size="sm" />
+                <EpisodeThumbnail
+                  src={thumbnailUrls[key] ?? null}
+                  alt={`${episode.title} thumbnail`}
+                  size="sm"
+                />
                 <div className="browse-episodes__item-text">
                   <h3>{episode.title}</h3>
                   {(() => {
@@ -258,14 +313,23 @@ const BrowseEpisodesPage = () => {
                     );
                   })()}
                   <small>
-                    @{episode.ownerName} | {episode.tags.join(', ') || 'no tags'}
+                    @{episode.ownerName} |{' '}
+                    {episode.tags.join(', ') || 'no tags'}
                   </small>
-                  {episode.categories.length > 0 ? <small>Categories: {episode.categories.join(', ')}</small> : null}
+                  {episode.categories.length > 0 ? (
+                    <small>Categories: {episode.categories.join(', ')}</small>
+                  ) : null}
                   <div className="browse-episodes__item-actions">
-                    <button type="button" onClick={() => handlePlayFromBrowse(key)}>
+                    <button
+                      type="button"
+                      onClick={() => handlePlayFromBrowse(key)}
+                    >
                       Play
                     </button>
-                    <button type="button" onClick={() => setDetailsEpisode(episode)}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsEpisode(episode)}
+                    >
                       View Details
                     </button>
                   </div>
@@ -276,7 +340,11 @@ const BrowseEpisodesPage = () => {
         </div>
 
         <footer className="browse-episodes__pagination">
-          <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage <= 1}>
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={safePage <= 1}
+          >
             Previous
           </button>
           <div className="browse-episodes__page-numbers">
@@ -302,8 +370,13 @@ const BrowseEpisodesPage = () => {
 
             {pageNumbers[pageNumbers.length - 1] < totalPages ? (
               <>
-                {pageNumbers[pageNumbers.length - 1] < totalPages - 1 ? <span>...</span> : null}
-                <button type="button" onClick={() => setCurrentPage(totalPages)}>
+                {pageNumbers[pageNumbers.length - 1] < totalPages - 1 ? (
+                  <span>...</span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                >
                   {totalPages}
                 </button>
               </>
@@ -311,7 +384,9 @@ const BrowseEpisodesPage = () => {
           </div>
           <button
             type="button"
-            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+            }
             disabled={safePage >= totalPages}
           >
             Next

@@ -15,12 +15,19 @@ interface EpisodeComposerContextValue {
   close: () => void;
 }
 
-const EpisodeComposerContext = createContext<EpisodeComposerContextValue | null>(null);
+const EpisodeComposerContext =
+  createContext<EpisodeComposerContextValue | null>(null);
 
-export const EpisodeComposerProvider = ({ children }: { children: ReactNode }) => {
+export const EpisodeComposerProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ComposerMode>('create');
-  const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(null);
+  const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
 
   const openCreate = () => {
@@ -62,14 +69,20 @@ export const EpisodeComposerProvider = ({ children }: { children: ReactNode }) =
     [isOpen, mode, editingEpisode, isPlaylistOpen]
   );
 
-  return <EpisodeComposerContext.Provider value={value}>{children}</EpisodeComposerContext.Provider>;
+  return (
+    <EpisodeComposerContext.Provider value={value}>
+      {children}
+    </EpisodeComposerContext.Provider>
+  );
 };
 
 export const useEpisodeComposer = () => {
   const context = useContext(EpisodeComposerContext);
 
   if (!context) {
-    throw new Error('useEpisodeComposer must be used within EpisodeComposerProvider');
+    throw new Error(
+      'useEpisodeComposer must be used within EpisodeComposerProvider'
+    );
   }
 
   return context;

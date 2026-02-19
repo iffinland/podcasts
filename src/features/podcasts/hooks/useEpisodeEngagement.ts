@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
 import { toEpisodeKey } from './podcastKeys';
-import { fetchAllFeedback, fetchUserFeedback, upsertFeedback } from '../../../services/engagement/episodeEngagementService';
+import {
+  fetchAllFeedback,
+  fetchUserFeedback,
+  upsertFeedback,
+} from '../../../services/engagement/episodeEngagementService';
 
 type EpisodeStats = {
   likes: number;
@@ -9,7 +13,9 @@ type EpisodeStats = {
 };
 
 export const useEpisodeEngagement = (activeName: string | null) => {
-  const [statsByEpisode, setStatsByEpisode] = useState<Record<string, EpisodeStats>>({});
+  const [statsByEpisode, setStatsByEpisode] = useState<
+    Record<string, EpisodeStats>
+  >({});
   const [likedKeys, setLikedKeys] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +33,11 @@ export const useEpisodeEngagement = (activeName: string | null) => {
         const tips = current.tips + feedback.tipCount;
         stats[feedback.episodeId] = { likes, tips };
 
-        if (activeName && feedback.userName.toLowerCase() === activeName.toLowerCase() && feedback.like) {
+        if (
+          activeName &&
+          feedback.userName.toLowerCase() === activeName.toLowerCase() &&
+          feedback.like
+        ) {
           liked.add(feedback.episodeId);
         }
       });
@@ -75,7 +85,9 @@ export const useEpisodeEngagement = (activeName: string | null) => {
 
       setStatsByEpisode((previous) => {
         const existing = previous[episode.episodeId] ?? { likes: 0, tips: 0 };
-        const likes = nextLike ? existing.likes + 1 : Math.max(existing.likes - 1, 0);
+        const likes = nextLike
+          ? existing.likes + 1
+          : Math.max(existing.likes - 1, 0);
         return {
           ...previous,
           [episode.episodeId]: {
@@ -129,7 +141,10 @@ export const useEpisodeEngagement = (activeName: string | null) => {
     (episodes: PodcastEpisode[]) => {
       return [...episodes]
         .map((episode) => {
-          const stats = statsByEpisode[episode.episodeId] ?? { likes: 0, tips: 0 };
+          const stats = statsByEpisode[episode.episodeId] ?? {
+            likes: 0,
+            tips: 0,
+          };
           return {
             episode,
             likes: stats.likes,

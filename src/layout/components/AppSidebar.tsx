@@ -18,10 +18,14 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
 
   const toggleTag = (tag: string) => {
     const normalized = tag.toLowerCase();
-    const hasTag = selectedTags.some((item) => item.toLowerCase() === normalized);
+    const hasTag = selectedTags.some(
+      (item) => item.toLowerCase() === normalized
+    );
 
     if (hasTag) {
-      setSelectedTags(selectedTags.filter((item) => item.toLowerCase() !== normalized));
+      setSelectedTags(
+        selectedTags.filter((item) => item.toLowerCase() !== normalized)
+      );
       return;
     }
 
@@ -32,25 +36,43 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
     return (
       <div className="app-sidebar__content">
         <h2>Menu</h2>
-        <button type="button" className="app-sidebar__primary-action" onClick={openCreate}>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={openCreate}
+        >
           Publish new episode
         </button>
-        <button type="button" className="app-sidebar__primary-action" onClick={openPlaylists}>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={openPlaylists}
+        >
           My Playists
         </button>
         <button
           type="button"
           className="app-sidebar__primary-action"
-          onClick={() => void navigate(location.pathname === '/episodes' ? '/' : '/episodes')}
+          onClick={() =>
+            void navigate(location.pathname === '/episodes' ? '/' : '/episodes')
+          }
         >
-          {location.pathname === '/episodes' ? 'Back to Home' : 'Browse all episodes'}
+          {location.pathname === '/episodes'
+            ? 'Back to Home'
+            : 'Browse all episodes'}
         </button>
         <button
           type="button"
           className="app-sidebar__primary-action"
-          onClick={() => void navigate(location.pathname === '/my-episodes' ? '/' : '/my-episodes')}
+          onClick={() =>
+            void navigate(
+              location.pathname === '/my-episodes' ? '/' : '/my-episodes'
+            )
+          }
         >
-          {location.pathname === '/my-episodes' ? 'Back to Home' : 'My Published Episodes'}
+          {location.pathname === '/my-episodes'
+            ? 'Back to Home'
+            : 'My Published Episodes'}
         </button>
         <h2>Top 20 Tags</h2>
         <button
@@ -63,8 +85,11 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         {topTags.length === 0 ? <p>No tags yet.</p> : null}
         <div className="app-sidebar__tag-cloud">
           {topTags.map((item, index) => {
-            const weightClass = index < 5 ? 'weight-3' : index < 12 ? 'weight-2' : 'weight-1';
-            const isActive = selectedTags.some((tag) => tag.toLowerCase() === item.tag.toLowerCase());
+            const weightClass =
+              index < 5 ? 'weight-3' : index < 12 ? 'weight-2' : 'weight-1';
+            const isActive = selectedTags.some(
+              (tag) => tag.toLowerCase() === item.tag.toLowerCase()
+            );
 
             return (
               <button
@@ -89,11 +114,19 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
       {topEpisodes.length === 0 ? <p>No ranked episodes yet.</p> : null}
       <div className="app-sidebar__ranking">
         {topEpisodes.map((item) => (
-          <article key={`${item.ownerName}-${item.episodeId}`} className="app-sidebar__ranking-item">
+          <article
+            key={`${item.ownerName}-${item.episodeId}`}
+            className="app-sidebar__ranking-item"
+          >
             <strong>{item.title}</strong>
             <small>@{item.ownerName}</small>
-            <span>Likes: {item.likes} | Tips: {item.tips}</span>
-            <button type="button" onClick={() => void playEpisode(item.episode)}>
+            <span>
+              Likes: {item.likes} | Tips: {item.tips}
+            </span>
+            <button
+              type="button"
+              onClick={() => void playEpisode(item.episode)}
+            >
               Play
             </button>
           </article>

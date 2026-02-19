@@ -51,7 +51,10 @@ export const usePodcastSocial = (activeName: string | null) => {
       setLikedKeys(likes);
       setPlaylists(nextMap);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Could not load likes or playlists.';
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'Could not load likes or playlists.';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -73,14 +76,21 @@ export const usePodcastSocial = (activeName: string | null) => {
       try {
         if (alreadyLiked) {
           await removeLike(activeName, episodeKey);
-          setLikedKeys((previous) => previous.filter((key) => key !== episodeKey));
+          setLikedKeys((previous) =>
+            previous.filter((key) => key !== episodeKey)
+          );
           return;
         }
 
         await addLike(activeName, episodeKey);
-        setLikedKeys((previous) => Array.from(new Set([...previous, episodeKey])));
+        setLikedKeys((previous) =>
+          Array.from(new Set([...previous, episodeKey]))
+        );
       } catch (likeError) {
-        const message = likeError instanceof Error ? likeError.message : 'Could not update like.';
+        const message =
+          likeError instanceof Error
+            ? likeError.message
+            : 'Could not update like.';
         setError(message);
       }
     },
@@ -109,7 +119,9 @@ export const usePodcastSocial = (activeName: string | null) => {
         });
       } catch (playlistError) {
         const message =
-          playlistError instanceof Error ? playlistError.message : 'Could not create playlist.';
+          playlistError instanceof Error
+            ? playlistError.message
+            : 'Could not create playlist.';
         setError(message);
       }
     },
@@ -134,7 +146,9 @@ export const usePodcastSocial = (activeName: string | null) => {
         });
       } catch (playlistError) {
         const message =
-          playlistError instanceof Error ? playlistError.message : 'Could not add episode to playlist.';
+          playlistError instanceof Error
+            ? playlistError.message
+            : 'Could not add episode to playlist.';
         setError(message);
       }
     },
@@ -151,7 +165,9 @@ export const usePodcastSocial = (activeName: string | null) => {
         await removeEpisodeFromPlaylist(activeName, playlistName, episodeKey);
         setPlaylists((previous) => ({
           ...previous,
-          [playlistName]: (previous[playlistName] ?? []).filter((key) => key !== episodeKey),
+          [playlistName]: (previous[playlistName] ?? []).filter(
+            (key) => key !== episodeKey
+          ),
         }));
       } catch (playlistError) {
         const message =

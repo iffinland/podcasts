@@ -19,7 +19,11 @@ export const getQortBalance = async (): Promise<WalletBalance> => {
   };
 };
 
-export const sendQort = async ({ recipient, amount, coin = 'QORT' }: SendCoinInput) => {
+export const sendQort = async ({
+  recipient,
+  amount,
+  coin = 'QORT',
+}: SendCoinInput) => {
   return requestQortal<unknown>({
     action: 'SEND_COIN',
     coin,

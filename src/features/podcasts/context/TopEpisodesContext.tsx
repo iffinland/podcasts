@@ -28,7 +28,11 @@ export const TopEpisodesProvider = ({ children }: { children: ReactNode }) => {
     [topEpisodes]
   );
 
-  return <TopEpisodesContext.Provider value={value}>{children}</TopEpisodesContext.Provider>;
+  return (
+    <TopEpisodesContext.Provider value={value}>
+      {children}
+    </TopEpisodesContext.Provider>
+  );
 };
 
 export const useTopEpisodes = () => {

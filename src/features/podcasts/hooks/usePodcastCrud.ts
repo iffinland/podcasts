@@ -8,7 +8,11 @@ import {
   updatePodcast,
 } from '../../../services/qdn/podcastQdnService';
 import type { PublishProgressUpdate } from '../../../services/qdn/podcastQdnService';
-import { PodcastEpisode, PublishPodcastInput, UpdatePodcastInput } from '../../../types/podcast';
+import {
+  PodcastEpisode,
+  PublishPodcastInput,
+  UpdatePodcastInput,
+} from '../../../types/podcast';
 
 export interface SaveProgress {
   operation: 'create' | 'edit' | 'delete';
@@ -31,7 +35,10 @@ export const usePodcastCrud = () => {
       const data = await searchPodcasts({ limit: 50, offset: 0 });
       setEpisodes(data);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Failed to load podcasts.';
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'Failed to load podcasts.';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -64,7 +71,10 @@ export const usePodcastCrud = () => {
       setEpisodes((previous) => [created, ...previous]);
       return created;
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : 'Failed to publish episode.';
+      const message =
+        saveError instanceof Error
+          ? saveError.message
+          : 'Failed to publish episode.';
       setError(message);
       throw saveError;
     } finally {
@@ -93,14 +103,18 @@ export const usePodcastCrud = () => {
       });
       setEpisodes((previous) =>
         previous.map((episode) =>
-          episode.episodeId === updated.episodeId && episode.ownerName === updated.ownerName
+          episode.episodeId === updated.episodeId &&
+          episode.ownerName === updated.ownerName
             ? updated
             : episode
         )
       );
       return updated;
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : 'Failed to update episode.';
+      const message =
+        saveError instanceof Error
+          ? saveError.message
+          : 'Failed to update episode.';
       setError(message);
       throw saveError;
     } finally {
@@ -122,11 +136,17 @@ export const usePodcastCrud = () => {
       setEpisodes((previous) =>
         previous.filter(
           (item) =>
-            !(item.episodeId === episode.episodeId && item.ownerName === episode.ownerName)
+            !(
+              item.episodeId === episode.episodeId &&
+              item.ownerName === episode.ownerName
+            )
         )
       );
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : 'Failed to delete episode.';
+      const message =
+        saveError instanceof Error
+          ? saveError.message
+          : 'Failed to delete episode.';
       setError(message);
       throw saveError;
     } finally {

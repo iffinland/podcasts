@@ -76,12 +76,18 @@ const HomePage = () => {
   const { setTopEpisodes } = useTopEpisodes();
   const { selectedTags, setSelectedTags, setTopTags } = useTagFilter();
   const composer = useEpisodeComposer();
-  const [featuredEpisode, setFeaturedEpisode] = useState<PodcastEpisode | null>(null);
+  const [featuredEpisode, setFeaturedEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
   const [featuredAudioUrl, setFeaturedAudioUrl] = useState<string | null>(null);
   const [autoPlaySignal, setAutoPlaySignal] = useState(0);
-  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string | null>>({});
+  const [thumbnailUrls, setThumbnailUrls] = useState<
+    Record<string, string | null>
+  >({});
   const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
-  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(null);
+  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
   const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
@@ -122,10 +128,13 @@ const HomePage = () => {
   }, [featuredEpisode, podcastCrud.resolveAudioUrl]);
 
   const episodeIndex = useMemo(() => {
-    return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>((accumulator, episode) => {
-      accumulator[toEpisodeKey(episode)] = episode;
-      return accumulator;
-    }, {});
+    return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>(
+      (accumulator, episode) => {
+        accumulator[toEpisodeKey(episode)] = episode;
+        return accumulator;
+      },
+      {}
+    );
   }, [podcastCrud.episodes]);
 
   const categoryOptions = useMemo(() => {
@@ -139,16 +148,24 @@ const HomePage = () => {
 
     return Array.from(counts.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((first, second) => second.count - first.count || first.name.localeCompare(second.name));
+      .sort(
+        (first, second) =>
+          second.count - first.count || first.name.localeCompare(second.name)
+      );
   }, [podcastCrud.episodes]);
 
   const filteredEpisodes = useMemo(() => {
     return podcastCrud.episodes.filter((episode) => {
-      const categoryMatch = !selectedCategory || episode.categories.includes(selectedCategory);
-      const normalizedEpisodeTags = episode.tags.map((tag) => tag.trim().toLowerCase());
+      const categoryMatch =
+        !selectedCategory || episode.categories.includes(selectedCategory);
+      const normalizedEpisodeTags = episode.tags.map((tag) =>
+        tag.trim().toLowerCase()
+      );
       const tagMatch =
         selectedTags.length === 0 ||
-        selectedTags.every((selectedTag) => normalizedEpisodeTags.includes(selectedTag.toLowerCase()));
+        selectedTags.every((selectedTag) =>
+          normalizedEpisodeTags.includes(selectedTag.toLowerCase())
+        );
       return categoryMatch && tagMatch;
     });
   }, [podcastCrud.episodes, selectedCategory, selectedTags]);
@@ -201,35 +218,40 @@ const HomePage = () => {
       return;
     }
 
-    const hasCategory = categoryOptions.some((item) => item.name === selectedCategory);
+    const hasCategory = categoryOptions.some(
+      (item) => item.name === selectedCategory
+    );
     if (!hasCategory) {
       setSelectedCategory(null);
     }
   }, [categoryOptions, selectedCategory]);
 
   useEffect(() => {
-    const map = podcastCrud.episodes.reduce<Map<string, TagAccumulator>>((accumulator, episode) => {
-      episode.tags.forEach((rawTag) => {
-        const normalized = rawTag.trim().toLowerCase();
+    const map = podcastCrud.episodes.reduce<Map<string, TagAccumulator>>(
+      (accumulator, episode) => {
+        episode.tags.forEach((rawTag) => {
+          const normalized = rawTag.trim().toLowerCase();
 
-        if (!normalized) {
-          return;
-        }
+          if (!normalized) {
+            return;
+          }
 
-        const existing = accumulator.get(normalized);
-        if (existing) {
-          existing.count += 1;
-          return;
-        }
+          const existing = accumulator.get(normalized);
+          if (existing) {
+            existing.count += 1;
+            return;
+          }
 
-        accumulator.set(normalized, {
-          count: 1,
-          label: rawTag.trim(),
+          accumulator.set(normalized, {
+            count: 1,
+            label: rawTag.trim(),
+          });
         });
-      });
 
-      return accumulator;
-    }, new Map());
+        return accumulator;
+      },
+      new Map()
+    );
 
     const top = Array.from(map.entries())
       .map(([normalized, value]) => ({
@@ -237,7 +259,10 @@ const HomePage = () => {
         normalized,
         count: value.count,
       }))
-      .sort((first, second) => second.count - first.count || first.tag.localeCompare(second.tag))
+      .sort(
+        (first, second) =>
+          second.count - first.count || first.tag.localeCompare(second.tag)
+      )
       .slice(0, 20)
       .map(({ tag, count }) => ({ tag, count }));
 
@@ -251,7 +276,9 @@ const HomePage = () => {
 
     const nextSelected = selectedTags.filter((selectedTag) =>
       podcastCrud.episodes.some((episode) =>
-        episode.tags.some((tag) => tag.trim().toLowerCase() === selectedTag.toLowerCase())
+        episode.tags.some(
+          (tag) => tag.trim().toLowerCase() === selectedTag.toLowerCase()
+        )
       )
     );
 
@@ -267,11 +294,14 @@ const HomePage = () => {
     window.history.replaceState({}, '', current.toString());
   }, []);
 
-  const handlePlayEpisode = useCallback(async (episode: PodcastEpisode) => {
-    setFeaturedEpisode(episode);
-    setAutoPlaySignal((value) => value + 1);
-    updateEpisodeParam(episode);
-  }, [updateEpisodeParam]);
+  const handlePlayEpisode = useCallback(
+    async (episode: PodcastEpisode) => {
+      setFeaturedEpisode(episode);
+      setAutoPlaySignal((value) => value + 1);
+      updateEpisodeParam(episode);
+    },
+    [updateEpisodeParam]
+  );
 
   useEffect(() => {
     registerPlayHandler(handlePlayEpisode);
@@ -280,10 +310,13 @@ const HomePage = () => {
     };
   }, [registerPlayHandler, handlePlayEpisode]);
 
-  const handleSelectEpisode = useCallback(async (episode: PodcastEpisode) => {
-    setFeaturedEpisode(episode);
-    updateEpisodeParam(episode);
-  }, [updateEpisodeParam]);
+  const handleSelectEpisode = useCallback(
+    async (episode: PodcastEpisode) => {
+      setFeaturedEpisode(episode);
+      updateEpisodeParam(episode);
+    },
+    [updateEpisodeParam]
+  );
 
   const handleToggleLike = async (episode: PodcastEpisode) => {
     await engagement.toggleLike(episode);
@@ -391,7 +424,9 @@ const HomePage = () => {
       return;
     }
 
-    const target = podcastCrud.episodes.find((episode) => toEpisodeKey(episode) === key);
+    const target = podcastCrud.episodes.find(
+      (episode) => toEpisodeKey(episode) === key
+    );
 
     if (!target) {
       return;
@@ -482,7 +517,11 @@ const HomePage = () => {
       <EpisodeDetailsModal
         isOpen={Boolean(detailsEpisode)}
         episode={detailsEpisode}
-        thumbnailUrl={detailsEpisode ? thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null : null}
+        thumbnailUrl={
+          detailsEpisode
+            ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
+            : null
+        }
         onClose={() => setDetailsEpisode(null)}
       />
       <EmbedCodeModal
@@ -492,18 +531,32 @@ const HomePage = () => {
         onClose={() => setEmbedEpisode(null)}
       />
 
-      {podcastCrud.error ? <p className="home-grid__error">{podcastCrud.error}</p> : null}
+      {podcastCrud.error ? (
+        <p className="home-grid__error">{podcastCrud.error}</p>
+      ) : null}
 
       <section className="home-grid">
         <section className="surface home-grid__top">
           <FeaturedEpisodePanel
             episode={featuredEpisode}
             audioUrl={featuredAudioUrl}
-            thumbnailUrl={featuredEpisode ? thumbnailUrls[toEpisodeKey(featuredEpisode)] ?? null : null}
+            thumbnailUrl={
+              featuredEpisode
+                ? (thumbnailUrls[toEpisodeKey(featuredEpisode)] ?? null)
+                : null
+            }
             autoPlaySignal={autoPlaySignal}
-            liked={featuredEpisode ? likedByEpisodeKey.has(toEpisodeKey(featuredEpisode)) : false}
-            likeCount={featuredEpisode ? likeCounts[featuredEpisode.episodeId] ?? 0 : 0}
-            tipCount={featuredEpisode ? tipCounts[featuredEpisode.episodeId] ?? 0 : 0}
+            liked={
+              featuredEpisode
+                ? likedByEpisodeKey.has(toEpisodeKey(featuredEpisode))
+                : false
+            }
+            likeCount={
+              featuredEpisode ? (likeCounts[featuredEpisode.episodeId] ?? 0) : 0
+            }
+            tipCount={
+              featuredEpisode ? (tipCounts[featuredEpisode.episodeId] ?? 0) : 0
+            }
             onToggleLike={handleToggleLike}
             onSendTip={handleSendTip}
             onShareEpisode={handleShareEpisode}
@@ -529,7 +582,6 @@ const HomePage = () => {
             onPlayEpisode={handlePlayEpisode}
           />
         </section>
-
       </section>
     </>
   );

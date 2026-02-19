@@ -37,7 +37,9 @@ const PlaylistPanel = ({
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
 
   const playlistNames = useMemo(() => Object.keys(playlists), [playlists]);
-  const featuredEpisodeKey = featuredEpisode ? toEpisodeKey(featuredEpisode) : '';
+  const featuredEpisodeKey = featuredEpisode
+    ? toEpisodeKey(featuredEpisode)
+    : '';
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -65,7 +67,10 @@ const PlaylistPanel = ({
       <h3>Playlists</h3>
       <p>Owner: {activeName ?? '-'}</p>
 
-      <form className="playlist-panel__create" onSubmit={(event) => void handleCreate(event)}>
+      <form
+        className="playlist-panel__create"
+        onSubmit={(event) => void handleCreate(event)}
+      >
         <input
           type="text"
           value={newPlaylistName}
@@ -104,7 +109,9 @@ const PlaylistPanel = ({
         {playlistNames.map((name) => (
           <article key={name} className="playlist-panel__list-item">
             <h4>{name}</h4>
-            {(playlists[name] ?? []).length === 0 ? <p>No episodes yet.</p> : null}
+            {(playlists[name] ?? []).length === 0 ? (
+              <p>No episodes yet.</p>
+            ) : null}
             <ul>
               {(playlists[name] ?? []).map((episodeKey) => {
                 const episode = episodeIndex[episodeKey];
@@ -113,7 +120,11 @@ const PlaylistPanel = ({
                     <div className="playlist-panel__episode">
                       <EpisodeThumbnail
                         src={thumbnailUrls[episodeKey] ?? null}
-                        alt={episode ? `${episode.title} thumbnail` : 'Episode thumbnail'}
+                        alt={
+                          episode
+                            ? `${episode.title} thumbnail`
+                            : 'Episode thumbnail'
+                        }
                         size="sm"
                       />
                       <span>{episode ? episode.title : episodeKey}</span>

@@ -46,7 +46,10 @@ interface PublishOptions {
 }
 
 const createEpisodeId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID();
   }
 
@@ -65,7 +68,10 @@ const toThumbnailIdentifier = (episodeId: string) => {
   return `${PODCAST_IDENTIFIER_PREFIX}${episodeId}-thumb`;
 };
 
-const mergeTagsAndCategories = (tags: string[], categories: string[]): string[] => {
+const mergeTagsAndCategories = (
+  tags: string[],
+  categories: string[]
+): string[] => {
   return Array.from(new Set([...tags, ...categories]));
 };
 
@@ -77,11 +83,7 @@ const sleep = async (durationMs: number) => {
 
 const normalizeList = (items: string[]): string[] => {
   return Array.from(
-    new Set(
-      items
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0)
-    )
+    new Set(items.map((item) => item.trim()).filter((item) => item.length > 0))
   );
 };
 
@@ -91,15 +93,21 @@ const validateTagsAndCategories = (tags: string[], categories: string[]) => {
   }
 
   if (categories.length > MAX_CATEGORIES) {
-    throw new Error(`Too many categories. Maximum allowed is ${MAX_CATEGORIES}.`);
+    throw new Error(
+      `Too many categories. Maximum allowed is ${MAX_CATEGORIES}.`
+    );
   }
 
   const invalidTag = tags.find((tag) => tag.length > MAX_TAG_LENGTH);
   if (invalidTag) {
-    throw new Error(`Tag "${invalidTag}" is too long. Max length is ${MAX_TAG_LENGTH}.`);
+    throw new Error(
+      `Tag "${invalidTag}" is too long. Max length is ${MAX_TAG_LENGTH}.`
+    );
   }
 
-  const invalidCategory = categories.find((category) => category.length > MAX_CATEGORY_LENGTH);
+  const invalidCategory = categories.find(
+    (category) => category.length > MAX_CATEGORY_LENGTH
+  );
   if (invalidCategory) {
     throw new Error(
       `Category "${invalidCategory}" is too long. Max length is ${MAX_CATEGORY_LENGTH}.`
@@ -113,7 +121,9 @@ const validateFileSize = (file: File, maxSizeBytes: number, label: string) => {
   }
 
   const maxSizeMb = Math.round(maxSizeBytes / (1024 * 1024));
-  throw new Error(`${label} is too large (${file.name}). Maximum allowed size is ${maxSizeMb} MB.`);
+  throw new Error(
+    `${label} is too large (${file.name}). Maximum allowed size is ${maxSizeMb} MB.`
+  );
 };
 
 const emitProgress = (
@@ -218,7 +228,10 @@ const parsePodcastMetadata = (raw: unknown): PodcastMetadata | null => {
 
   let parsedCategories: string[] = [];
   if (categories !== undefined) {
-    if (!Array.isArray(categories) || !categories.every((category) => typeof category === 'string')) {
+    if (
+      !Array.isArray(categories) ||
+      !categories.every((category) => typeof category === 'string')
+    ) {
       return null;
     }
 
@@ -361,7 +374,9 @@ const resolveOwnerName = async (providedName?: string): Promise<string> => {
     return account.name.trim();
   }
 
-  throw new Error('Authenticated user has no Qortal name. Register a name first.');
+  throw new Error(
+    'Authenticated user has no Qortal name. Register a name first.'
+  );
 };
 
 const verifyMetadataPublication = async (
@@ -414,7 +429,11 @@ export const publishPodcast = async (
   validateTagsAndCategories(tags, categories);
   validateFileSize(input.audioFile, MAX_AUDIO_SIZE_BYTES, 'Audio file');
   if (input.thumbnailFile) {
-    validateFileSize(input.thumbnailFile, MAX_THUMBNAIL_SIZE_BYTES, 'Thumbnail image');
+    validateFileSize(
+      input.thumbnailFile,
+      MAX_THUMBNAIL_SIZE_BYTES,
+      'Thumbnail image'
+    );
   }
 
   emitProgress(options, 'uploading-audio', 'Uploading audio file to QDN...');
@@ -428,7 +447,11 @@ export const publishPodcast = async (
   );
 
   if (input.thumbnailFile) {
-    emitProgress(options, 'uploading-thumbnail', 'Uploading thumbnail to QDN...');
+    emitProgress(
+      options,
+      'uploading-thumbnail',
+      'Uploading thumbnail to QDN...'
+    );
 
     try {
       await publishThumbnailFile(
@@ -442,7 +465,10 @@ export const publishPodcast = async (
 
       publishedThumbnail = true;
     } catch (error) {
-      console.warn('[podcast] thumbnail publish failed, continuing without thumbnail', error);
+      console.warn(
+        '[podcast] thumbnail publish failed, continuing without thumbnail',
+        error
+      );
     }
   }
 
@@ -462,20 +488,29 @@ export const publishPodcast = async (
       name: ownerName,
       filename: input.audioFile.name,
     },
-    thumbnail: input.thumbnailFile && publishedThumbnail
-      ? {
-          service: PODCAST_IMAGE_SERVICE,
-          identifier: thumbnailIdentifier,
-          name: ownerName,
-          filename: input.thumbnailFile.name,
-        }
-      : null,
+    thumbnail:
+      input.thumbnailFile && publishedThumbnail
+        ? {
+            service: PODCAST_IMAGE_SERVICE,
+            identifier: thumbnailIdentifier,
+            name: ownerName,
+            filename: input.thumbnailFile.name,
+          }
+        : null,
   };
 
-  emitProgress(options, 'publishing-metadata', 'Publishing episode metadata to QDN...');
+  emitProgress(
+    options,
+    'publishing-metadata',
+    'Publishing episode metadata to QDN...'
+  );
   await publishMetadata(ownerName, metadataIdentifier, metadata);
 
-  emitProgress(options, 'verifying-metadata', 'Verifying metadata availability on QDN...');
+  emitProgress(
+    options,
+    'verifying-metadata',
+    'Verifying metadata availability on QDN...'
+  );
   await verifyMetadataPublication(ownerName, metadataIdentifier, episodeId);
   emitProgress(options, 'completed', 'Publish completed.');
 
@@ -535,7 +570,8 @@ export const updatePodcast = async (
   input: UpdatePodcastInput,
   options?: PublishOptions
 ): Promise<PodcastEpisode> => {
-  const { episode, title, description, tags, newAudioFile, newThumbnailFile } = input;
+  const { episode, title, description, tags, newAudioFile, newThumbnailFile } =
+    input;
   const normalizedTags = normalizeList(tags);
   const normalizedCategories = normalizeList(input.categories);
   let publishedThumbnail = Boolean(episode.thumbnail);
@@ -546,11 +582,19 @@ export const updatePodcast = async (
     validateFileSize(newAudioFile, MAX_AUDIO_SIZE_BYTES, 'Audio file');
   }
   if (newThumbnailFile) {
-    validateFileSize(newThumbnailFile, MAX_THUMBNAIL_SIZE_BYTES, 'Thumbnail image');
+    validateFileSize(
+      newThumbnailFile,
+      MAX_THUMBNAIL_SIZE_BYTES,
+      'Thumbnail image'
+    );
   }
 
   if (newAudioFile) {
-    emitProgress(options, 'uploading-audio', 'Uploading updated audio file to QDN...');
+    emitProgress(
+      options,
+      'uploading-audio',
+      'Uploading updated audio file to QDN...'
+    );
     await publishAudioFile(
       episode.ownerName,
       episode.audio.identifier,
@@ -562,12 +606,17 @@ export const updatePodcast = async (
   }
 
   if (newThumbnailFile) {
-    emitProgress(options, 'uploading-thumbnail', 'Uploading updated thumbnail to QDN...');
+    emitProgress(
+      options,
+      'uploading-thumbnail',
+      'Uploading updated thumbnail to QDN...'
+    );
 
     try {
       await publishThumbnailFile(
         episode.ownerName,
-        episode.thumbnail?.identifier ?? toThumbnailIdentifier(episode.episodeId),
+        episode.thumbnail?.identifier ??
+          toThumbnailIdentifier(episode.episodeId),
         title,
         description,
         mergeTagsAndCategories(normalizedTags, normalizedCategories),
@@ -577,7 +626,10 @@ export const updatePodcast = async (
       publishedThumbnail = true;
     } catch (error) {
       publishedThumbnail = false;
-      console.warn('[podcast] thumbnail update failed, continuing without thumbnail', error);
+      console.warn(
+        '[podcast] thumbnail update failed, continuing without thumbnail',
+        error
+      );
     }
   }
 
@@ -597,22 +649,44 @@ export const updatePodcast = async (
     },
     thumbnail: newThumbnailFile
       ? publishedThumbnail
-      ? {
-          service: PODCAST_IMAGE_SERVICE,
-          identifier: episode.thumbnail?.identifier ?? toThumbnailIdentifier(episode.episodeId),
-          name: episode.ownerName,
-          filename: newThumbnailFile.name,
-        }
-      : null
+        ? {
+            service: PODCAST_IMAGE_SERVICE,
+            identifier:
+              episode.thumbnail?.identifier ??
+              toThumbnailIdentifier(episode.episodeId),
+            name: episode.ownerName,
+            filename: newThumbnailFile.name,
+          }
+        : null
       : episode.thumbnail,
   };
 
-  emitProgress(options, 'publishing-metadata', 'Publishing updated metadata to QDN...');
-  await publishMetadata(episode.ownerName, episode.metadataIdentifier, updatedMetadata);
-  emitProgress(options, 'verifying-metadata', 'Verifying updated metadata on QDN...');
-  await verifyMetadataPublication(episode.ownerName, episode.metadataIdentifier, episode.episodeId);
+  emitProgress(
+    options,
+    'publishing-metadata',
+    'Publishing updated metadata to QDN...'
+  );
+  await publishMetadata(
+    episode.ownerName,
+    episode.metadataIdentifier,
+    updatedMetadata
+  );
+  emitProgress(
+    options,
+    'verifying-metadata',
+    'Verifying updated metadata on QDN...'
+  );
+  await verifyMetadataPublication(
+    episode.ownerName,
+    episode.metadataIdentifier,
+    episode.episodeId
+  );
   emitProgress(options, 'completed', 'Update completed.');
-  return buildEpisodeFromMetadata(episode.ownerName, episode.metadataIdentifier, updatedMetadata);
+  return buildEpisodeFromMetadata(
+    episode.ownerName,
+    episode.metadataIdentifier,
+    updatedMetadata
+  );
 };
 
 export const deletePodcast = async (episode: PodcastEpisode): Promise<void> => {
@@ -633,7 +707,9 @@ export const deletePodcast = async (episode: PodcastEpisode): Promise<void> => {
   });
 };
 
-export const getAudioResourceUrl = async (episode: PodcastEpisode): Promise<string> => {
+export const getAudioResourceUrl = async (
+  episode: PodcastEpisode
+): Promise<string> => {
   return requestQortal<string>({
     action: 'GET_QDN_RESOURCE_URL',
     service: episode.audio.service,
@@ -642,7 +718,9 @@ export const getAudioResourceUrl = async (episode: PodcastEpisode): Promise<stri
   });
 };
 
-export const getThumbnailResourceUrl = async (episode: PodcastEpisode): Promise<string | null> => {
+export const getThumbnailResourceUrl = async (
+  episode: PodcastEpisode
+): Promise<string | null> => {
   if (!episode.thumbnail) {
     return null;
   }

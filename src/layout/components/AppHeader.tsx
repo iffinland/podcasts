@@ -15,7 +15,8 @@ const initialsFromName = (name: string | null): string => {
 };
 
 const AppHeader = () => {
-  const { activeName, availableNames, avatarUrl, isLoading, setActiveName } = useIdentity();
+  const { activeName, availableNames, avatarUrl, isLoading, setActiveName } =
+    useIdentity();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const logoSrc = `${import.meta.env.BASE_URL}podcast-logo-rounded-corner.png`;
@@ -58,17 +59,26 @@ const AppHeader = () => {
           disabled={isLoading || availableNames.length === 0}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} alt={activeName ? `${activeName} avatar` : 'User avatar'} />
+            <img
+              src={avatarUrl}
+              alt={activeName ? `${activeName} avatar` : 'User avatar'}
+            />
           ) : (
             <div className="app-header__avatar-fallback">{initials}</div>
           )}
 
           <div className="app-header__identity-text">
             <strong>{activeName ?? 'Unknown user'}</strong>
-            <span>{availableNames.length > 0 ? `${availableNames.length} names` : 'No names'}</span>
+            <span>
+              {availableNames.length > 0
+                ? `${availableNames.length} names`
+                : 'No names'}
+            </span>
           </div>
 
-          <span className={`app-header__chevron ${isOpen ? 'open' : ''}`}>▾</span>
+          <span className={`app-header__chevron ${isOpen ? 'open' : ''}`}>
+            ▾
+          </span>
         </button>
 
         {isOpen && availableNames.length > 0 ? (

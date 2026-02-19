@@ -9,7 +9,12 @@ interface SendTipModalProps {
   onClose: () => void;
 }
 
-const SendTipModal = ({ isOpen, publisherName, onSent, onClose }: SendTipModalProps) => {
+const SendTipModal = ({
+  isOpen,
+  publisherName,
+  onSent,
+  onClose,
+}: SendTipModalProps) => {
   const [amount, setAmount] = useState('0.1');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +22,12 @@ const SendTipModal = ({ isOpen, publisherName, onSent, onClose }: SendTipModalPr
 
   const canSubmit = useMemo(() => {
     const parsed = Number(amount);
-    return Boolean(publisherName) && Number.isFinite(parsed) && parsed > 0 && !isSending;
+    return (
+      Boolean(publisherName) &&
+      Number.isFinite(parsed) &&
+      parsed > 0 &&
+      !isSending
+    );
   }, [amount, isSending, publisherName]);
 
   if (!isOpen) {
@@ -42,11 +52,16 @@ const SendTipModal = ({ isOpen, publisherName, onSent, onClose }: SendTipModalPr
 
     try {
       const nameData = await getNameData(publisherName);
-      await sendQort({ recipient: nameData.owner, amount: parsed, coin: 'QORT' });
+      await sendQort({
+        recipient: nameData.owner,
+        amount: parsed,
+        coin: 'QORT',
+      });
       await onSent(parsed);
       setSuccess(`Tip sent to ${publisherName}`);
     } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : 'Failed to send tip.';
+      const message =
+        sendError instanceof Error ? sendError.message : 'Failed to send tip.';
       setError(message);
     } finally {
       setIsSending(false);
@@ -55,7 +70,10 @@ const SendTipModal = ({ isOpen, publisherName, onSent, onClose }: SendTipModalPr
 
   return (
     <div className="episode-modal__backdrop" onClick={onClose}>
-      <section className="episode-modal surface" onClick={(event) => event.stopPropagation()}>
+      <section
+        className="episode-modal surface"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="episode-modal__head">
           <h3>Send Tips</h3>
           <button type="button" onClick={onClose}>
@@ -63,7 +81,10 @@ const SendTipModal = ({ isOpen, publisherName, onSent, onClose }: SendTipModalPr
           </button>
         </div>
 
-        <form className="episode-modal__form" onSubmit={(event) => void handleSubmit(event)}>
+        <form
+          className="episode-modal__form"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <label>
             Publisher
             <input type="text" value={publisherName ?? ''} readOnly />

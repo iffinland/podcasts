@@ -6,10 +6,20 @@ interface EpisodeThumbnailProps {
 
 const EpisodeThumbnail = ({ src, alt, size = 'md' }: EpisodeThumbnailProps) => {
   if (!src) {
-    return <div className={`episode-thumb episode-thumb--${size}`}>Qortal-Podcasts</div>;
+    return (
+      <div className={`episode-thumb episode-thumb--${size}`}>
+        Qortal-Podcasts
+      </div>
+    );
   }
 
-  return <img src={src} alt={alt} className={`episode-thumb episode-thumb--${size}`} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={`episode-thumb episode-thumb--${size}`}
+    />
+  );
 };
 
 export default EpisodeThumbnail;

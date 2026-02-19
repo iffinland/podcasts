@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getQortBalance, getUserAccount, sendQort } from '../../../services/qortal/walletService';
+import {
+  getQortBalance,
+  getUserAccount,
+  sendQort,
+} from '../../../services/qortal/walletService';
 import { UserAccount, WalletBalance } from '../../../types/qortal';
 
 export const useWalletActions = () => {
@@ -13,11 +17,17 @@ export const useWalletActions = () => {
     setError(null);
 
     try {
-      const [nextAccount, nextBalance] = await Promise.all([getUserAccount(), getQortBalance()]);
+      const [nextAccount, nextBalance] = await Promise.all([
+        getUserAccount(),
+        getQortBalance(),
+      ]);
       setAccount(nextAccount);
       setBalance(nextBalance);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Failed to load wallet data.';
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'Failed to load wallet data.';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -37,7 +47,8 @@ export const useWalletActions = () => {
       const refreshed = await getQortBalance();
       setBalance(refreshed);
     } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : 'Failed to send QORT.';
+      const message =
+        sendError instanceof Error ? sendError.message : 'Failed to send QORT.';
       setError(message);
       throw sendError;
     } finally {

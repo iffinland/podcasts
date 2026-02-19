@@ -154,7 +154,8 @@ const EpisodeComposerModal = ({
       });
       onClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save episode.';
+      const message =
+        error instanceof Error ? error.message : 'Failed to save episode.';
       setSubmitError(message);
     }
   };
@@ -179,9 +180,16 @@ const EpisodeComposerModal = ({
           </button>
         </div>
 
-        <form className="episode-modal__form" onSubmit={(event) => void handleSubmit(event)}>
-          {showProgress ? <p className="episode-modal__status">{saveProgress.message}</p> : null}
-          {visibleError ? <p className="episode-modal__error">{visibleError}</p> : null}
+        <form
+          className="episode-modal__form"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          {showProgress ? (
+            <p className="episode-modal__status">{saveProgress.message}</p>
+          ) : null}
+          {visibleError ? (
+            <p className="episode-modal__error">{visibleError}</p>
+          ) : null}
 
           <label>
             Title
@@ -220,7 +228,10 @@ const EpisodeComposerModal = ({
             <legend>Categories</legend>
             <div className="episode-modal__categories-list">
               {PODCAST_CATEGORIES.map((category) => (
-                <label key={category} className="episode-modal__category-option">
+                <label
+                  key={category}
+                  className="episode-modal__category-option"
+                >
                   <input
                     type="checkbox"
                     checked={categories.includes(category)}
@@ -238,7 +249,9 @@ const EpisodeComposerModal = ({
             <input
               type="file"
               accept="audio/*"
-              onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                setAudioFile(event.target.files?.[0] ?? null)
+              }
               required={mode === 'create'}
               disabled={isSaving || !activeName}
             />
@@ -249,7 +262,9 @@ const EpisodeComposerModal = ({
             <input
               type="file"
               accept="image/*"
-              onChange={(event) => setThumbnailFile(event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                setThumbnailFile(event.target.files?.[0] ?? null)
+              }
               disabled={isSaving || !activeName}
             />
           </label>

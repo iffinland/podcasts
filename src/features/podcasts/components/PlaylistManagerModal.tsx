@@ -39,7 +39,10 @@ const PlaylistManagerModal = ({
 
   return (
     <div className="episode-modal__backdrop" onClick={onClose}>
-      <section className="episode-modal surface" onClick={(event) => event.stopPropagation()}>
+      <section
+        className="episode-modal surface"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="episode-modal__head">
           <h3>Playlists</h3>
           <button type="button" onClick={onClose}>

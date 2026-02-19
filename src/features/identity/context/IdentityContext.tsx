@@ -1,4 +1,12 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { createAvatarLink, useGlobal } from 'qapp-core';
 import { requestQortal } from '../../../services/qortal/qortalClient';
 
@@ -62,7 +70,9 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
       });
 
       const names = normalizeNames(response);
-      const merged = Array.from(new Set([...(auth.name ? [auth.name] : []), ...names]));
+      const merged = Array.from(
+        new Set([...(auth.name ? [auth.name] : []), ...names])
+      );
       setAvailableNames(merged);
 
       setActiveNameState((previous) => {
@@ -147,7 +157,11 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
     ]
   );
 
-  return <IdentityContext.Provider value={value}>{children}</IdentityContext.Provider>;
+  return (
+    <IdentityContext.Provider value={value}>
+      {children}
+    </IdentityContext.Provider>
+  );
 };
 
 export const useIdentity = () => {

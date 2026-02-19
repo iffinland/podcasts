@@ -47,7 +47,9 @@ const PodcastCrudPanel = ({
 }: PodcastCrudPanelProps) => {
   const filterSuffix = [
     selectedCategory,
-    selectedTags.length > 0 ? selectedTags.map((tag) => `#${tag}`).join(', ') : null,
+    selectedTags.length > 0
+      ? selectedTags.map((tag) => `#${tag}`).join(', ')
+      : null,
   ]
     .filter(Boolean)
     .join(' + ');
@@ -67,7 +69,10 @@ const PodcastCrudPanel = ({
           const tipCount = tipCounts[episode.episodeId] ?? 0;
 
           return (
-            <article key={`${episode.ownerName}-${episode.episodeId}`} className="podcast-crud__item">
+            <article
+              key={`${episode.ownerName}-${episode.episodeId}`}
+              className="podcast-crud__item"
+            >
               <div>
                 <div className="podcast-crud__item-head">
                   <EpisodeThumbnail
@@ -79,7 +84,8 @@ const PodcastCrudPanel = ({
                     <h4>{episode.title}</h4>
                     <p>{episode.description}</p>
                     <small>
-                      @{episode.ownerName} | {episode.tags.join(', ') || 'no tags'}
+                      @{episode.ownerName} |{' '}
+                      {episode.tags.join(', ') || 'no tags'}
                     </small>
                     {episode.categories.length > 0 ? (
                       <small>Categories: {episode.categories.join(', ')}</small>
@@ -89,19 +95,39 @@ const PodcastCrudPanel = ({
               </div>
 
               <div className="podcast-crud__item-actions">
-                <button type="button" onClick={() => void onPlayEpisode(episode)} disabled={isSaving}>
+                <button
+                  type="button"
+                  onClick={() => void onPlayEpisode(episode)}
+                  disabled={isSaving}
+                >
                   Play
                 </button>
-                <button type="button" onClick={() => void onToggleLike(episode)} disabled={isSaving}>
+                <button
+                  type="button"
+                  onClick={() => void onToggleLike(episode)}
+                  disabled={isSaving}
+                >
                   {isLiked ? 'Unlike' : 'Like'} ({likeCount})
                 </button>
-                <button type="button" onClick={() => onSendTip(episode)} disabled={isSaving}>
+                <button
+                  type="button"
+                  onClick={() => onSendTip(episode)}
+                  disabled={isSaving}
+                >
                   Send Tips ({tipCount})
                 </button>
-                <button type="button" onClick={() => onShareEpisode(episode)} disabled={isSaving}>
+                <button
+                  type="button"
+                  onClick={() => onShareEpisode(episode)}
+                  disabled={isSaving}
+                >
                   Share Link
                 </button>
-                <button type="button" onClick={() => onEmbedEpisode(episode)} disabled={isSaving}>
+                <button
+                  type="button"
+                  onClick={() => onEmbedEpisode(episode)}
+                  disabled={isSaving}
+                >
                   Embed Code
                 </button>
                 <button

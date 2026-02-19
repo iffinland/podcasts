@@ -8,7 +8,14 @@ interface WalletPanelProps {
 }
 
 const WalletPanel = ({ activeName, compact = false }: WalletPanelProps) => {
-  const { account, balance, isLoading, error, loadAccountAndBalance, sendCoin } = useWalletActions();
+  const {
+    account,
+    balance,
+    isLoading,
+    error,
+    loadAccountAndBalance,
+    sendCoin,
+  } = useWalletActions();
 
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('0.1');
@@ -29,7 +36,11 @@ const WalletPanel = ({ activeName, compact = false }: WalletPanelProps) => {
     <div className={`wallet-panel ${compact ? 'wallet-panel--compact' : ''}`}>
       <div className="wallet-panel__header">
         <h3>Wallet & Support</h3>
-        <button type="button" onClick={() => void loadAccountAndBalance()} disabled={isLoading}>
+        <button
+          type="button"
+          onClick={() => void loadAccountAndBalance()}
+          disabled={isLoading}
+        >
           {isLoading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
@@ -44,10 +55,14 @@ const WalletPanel = ({ activeName, compact = false }: WalletPanelProps) => {
         Address: <strong>{account?.address ?? '-'}</strong>
       </p>
       <p>
-        Balance: <strong>{balance ? `${balance.value} ${balance.coin}` : '-'}</strong>
+        Balance:{' '}
+        <strong>{balance ? `${balance.value} ${balance.coin}` : '-'}</strong>
       </p>
 
-      <form className="wallet-panel__form" onSubmit={(event) => void handleSend(event)}>
+      <form
+        className="wallet-panel__form"
+        onSubmit={(event) => void handleSend(event)}
+      >
         <label>
           Recipient address
           <input

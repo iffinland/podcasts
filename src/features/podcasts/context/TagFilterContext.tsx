@@ -28,7 +28,11 @@ export const TagFilterProvider = ({ children }: { children: ReactNode }) => {
     [selectedTags, topTags]
   );
 
-  return <TagFilterContext.Provider value={value}>{children}</TagFilterContext.Provider>;
+  return (
+    <TagFilterContext.Provider value={value}>
+      {children}
+    </TagFilterContext.Provider>
+  );
 };
 
 export const useTagFilter = () => {

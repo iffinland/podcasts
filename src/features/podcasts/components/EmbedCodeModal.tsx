@@ -29,7 +29,10 @@ const EmbedCodeModal = ({
 
   return (
     <div className="episode-modal__backdrop" onClick={onClose}>
-      <section className="episode-modal surface embed-code-modal" onClick={(event) => event.stopPropagation()}>
+      <section
+        className="episode-modal surface embed-code-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="episode-modal__head">
           <h3>Embed Code</h3>
           <button type="button" onClick={onClose}>

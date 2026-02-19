@@ -1,7 +1,9 @@
 import { requestQortal } from '../qortal/qortalClient';
 
-const likesListName = (activeName: string) => `qpodcasts-likes-${activeName.toLowerCase()}`;
-const playlistsListName = (activeName: string) => `qpodcasts-playlists-${activeName.toLowerCase()}`;
+const likesListName = (activeName: string) =>
+  `qpodcasts-likes-${activeName.toLowerCase()}`;
+const playlistsListName = (activeName: string) =>
+  `qpodcasts-playlists-${activeName.toLowerCase()}`;
 const playlistItemsListName = (activeName: string, playlistName: string) => {
   const normalized = playlistName.toLowerCase().replace(/\s+/g, '-');
   return `qpodcasts-playlist-items-${activeName.toLowerCase()}-${normalized}`;
@@ -25,7 +27,9 @@ const normalizeListResponse = (response: unknown): string[] => {
 
       return null;
     })
-    .filter((value): value is string => Boolean(value && value.trim().length > 0));
+    .filter((value): value is string =>
+      Boolean(value && value.trim().length > 0)
+    );
 };
 
 const getListItems = async (listName: string): Promise<string[]> => {
@@ -37,11 +41,16 @@ const getListItems = async (listName: string): Promise<string[]> => {
   return normalizeListResponse(response);
 };
 
-export const loadLikedEpisodeKeys = async (activeName: string): Promise<string[]> => {
+export const loadLikedEpisodeKeys = async (
+  activeName: string
+): Promise<string[]> => {
   return getListItems(likesListName(activeName));
 };
 
-export const addLike = async (activeName: string, episodeKey: string): Promise<void> => {
+export const addLike = async (
+  activeName: string,
+  episodeKey: string
+): Promise<void> => {
   await requestQortal<unknown>({
     action: 'ADD_LIST_ITEMS',
     list_name: likesListName(activeName),
@@ -49,7 +58,10 @@ export const addLike = async (activeName: string, episodeKey: string): Promise<v
   });
 };
 
-export const removeLike = async (activeName: string, episodeKey: string): Promise<void> => {
+export const removeLike = async (
+  activeName: string,
+  episodeKey: string
+): Promise<void> => {
   await requestQortal<unknown>({
     action: 'DELETE_LIST_ITEM',
     list_name: likesListName(activeName),
@@ -57,11 +69,16 @@ export const removeLike = async (activeName: string, episodeKey: string): Promis
   });
 };
 
-export const loadPlaylistNames = async (activeName: string): Promise<string[]> => {
+export const loadPlaylistNames = async (
+  activeName: string
+): Promise<string[]> => {
   return getListItems(playlistsListName(activeName));
 };
 
-export const createPlaylist = async (activeName: string, playlistName: string): Promise<void> => {
+export const createPlaylist = async (
+  activeName: string,
+  playlistName: string
+): Promise<void> => {
   await requestQortal<unknown>({
     action: 'ADD_LIST_ITEMS',
     list_name: playlistsListName(activeName),

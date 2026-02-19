@@ -12,15 +12,21 @@ const MyPublishedEpisodesPage = () => {
   const navigate = useNavigate();
   const { activeName } = useIdentity();
   const podcastCrud = usePodcastCrud();
-  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string | null>>({});
-  const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(null);
+  const [thumbnailUrls, setThumbnailUrls] = useState<
+    Record<string, string | null>
+  >({});
+  const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
 
   const myEpisodes = useMemo(() => {
     if (!activeName) {
       return [];
     }
 
-    return podcastCrud.episodes.filter((episode) => episode.ownerName === activeName);
+    return podcastCrud.episodes.filter(
+      (episode) => episode.ownerName === activeName
+    );
   }, [activeName, podcastCrud.episodes]);
 
   useEffect(() => {
@@ -112,12 +118,20 @@ const MyPublishedEpisodesPage = () => {
       <section className="surface my-episodes">
         <header className="my-episodes__header">
           <h2>My Published Episodes</h2>
-          <p>{activeName ? `Publisher: @${activeName}` : 'No active publisher selected.'}</p>
+          <p>
+            {activeName
+              ? `Publisher: @${activeName}`
+              : 'No active publisher selected.'}
+          </p>
         </header>
 
         {podcastCrud.isLoading ? <p>Loading episodes...</p> : null}
-        {podcastCrud.error ? <p className="my-episodes__error">{podcastCrud.error}</p> : null}
-        {!podcastCrud.isLoading && activeName && myEpisodes.length === 0 ? <p>No published episodes yet.</p> : null}
+        {podcastCrud.error ? (
+          <p className="my-episodes__error">{podcastCrud.error}</p>
+        ) : null}
+        {!podcastCrud.isLoading && activeName && myEpisodes.length === 0 ? (
+          <p>No published episodes yet.</p>
+        ) : null}
 
         <div className="my-episodes__list">
           {myEpisodes.map((episode) => {
@@ -125,17 +139,29 @@ const MyPublishedEpisodesPage = () => {
 
             return (
               <article key={key} className="my-episodes__item">
-                <EpisodeThumbnail src={thumbnailUrls[key] ?? null} alt={`${episode.title} thumbnail`} size="sm" />
+                <EpisodeThumbnail
+                  src={thumbnailUrls[key] ?? null}
+                  alt={`${episode.title} thumbnail`}
+                  size="sm"
+                />
                 <div className="my-episodes__item-text">
                   <h3>{episode.title}</h3>
                   <p>{episode.description}</p>
                   <small>{episode.tags.join(', ') || 'no tags'}</small>
                 </div>
                 <div className="my-episodes__item-actions">
-                  <button type="button" onClick={() => handlePlay(episode)} disabled={podcastCrud.isSaving}>
+                  <button
+                    type="button"
+                    onClick={() => handlePlay(episode)}
+                    disabled={podcastCrud.isSaving}
+                  >
                     Play
                   </button>
-                  <button type="button" onClick={() => setEditingEpisode(episode)} disabled={podcastCrud.isSaving}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingEpisode(episode)}
+                    disabled={podcastCrud.isSaving}
+                  >
                     Edit
                   </button>
                   <button

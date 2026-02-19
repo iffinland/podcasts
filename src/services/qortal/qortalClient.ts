@@ -16,7 +16,10 @@ const parseRequestError = (response: unknown): string | null => {
       return 'Qortal request returned an empty response.';
     }
 
-    if (trimmed.toLowerCase() === 'false' || trimmed.toLowerCase().startsWith('error')) {
+    if (
+      trimmed.toLowerCase() === 'false' ||
+      trimmed.toLowerCase().startsWith('error')
+    ) {
       return trimmed;
     }
 
@@ -58,12 +61,17 @@ export const requestQortal = async <TResponse>(
   payload: Record<string, unknown>
 ): Promise<TResponse> => {
   if (!isQortalRequestAvailable()) {
-    throw new Error('Qortal request interface is not available in this environment.');
+    throw new Error(
+      'Qortal request interface is not available in this environment.'
+    );
   }
 
-  const action = typeof payload.action === 'string' ? payload.action : 'UNKNOWN_ACTION';
-  const service = typeof payload.service === 'string' ? payload.service : undefined;
-  const identifier = typeof payload.identifier === 'string' ? payload.identifier : undefined;
+  const action =
+    typeof payload.action === 'string' ? payload.action : 'UNKNOWN_ACTION';
+  const service =
+    typeof payload.service === 'string' ? payload.service : undefined;
+  const identifier =
+    typeof payload.identifier === 'string' ? payload.identifier : undefined;
   const startedAt = Date.now();
   const label = [action, service, identifier].filter(Boolean).join(':');
   let didTimeout = false;
@@ -83,12 +91,19 @@ export const requestQortal = async <TResponse>(
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {
       didTimeout = true;
-      reject(new Error(`Qortal request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds (${label}).`));
+      reject(
+        new Error(
+          `Qortal request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds (${label}).`
+        )
+      );
     }, REQUEST_TIMEOUT_MS);
   });
 
   try {
-    const response = (await Promise.race([baseRequestPromise, timeoutPromise])) as unknown;
+    const response = (await Promise.race([
+      baseRequestPromise,
+      timeoutPromise,
+    ])) as unknown;
     const errorMessage = parseRequestError(response);
 
     if (errorMessage) {
@@ -98,7 +113,10 @@ export const requestQortal = async <TResponse>(
     console.info(`[qortal] request:ok ${label} (${Date.now() - startedAt}ms)`);
     return response as TResponse;
   } catch (error) {
-    console.error(`[qortal] request:failed ${label} (${Date.now() - startedAt}ms)`, error);
+    console.error(
+      `[qortal] request:failed ${label} (${Date.now() - startedAt}ms)`,
+      error
+    );
     throw error;
   } finally {
     if (timeoutHandle) {

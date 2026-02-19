@@ -36,7 +36,8 @@ const FeaturedEpisodePanel = ({
   const lastHandledAutoPlaySignalRef = useRef(autoPlaySignal);
 
   useEffect(() => {
-    const shouldAutoPlay = autoPlaySignal > lastHandledAutoPlaySignalRef.current;
+    const shouldAutoPlay =
+      autoPlaySignal > lastHandledAutoPlaySignalRef.current;
 
     if (!shouldAutoPlay || !audioRef.current || !audioUrl) {
       return;
@@ -58,7 +59,9 @@ const FeaturedEpisodePanel = ({
 
   const description = episode.description ?? '';
   const isLongDescription = description.length > 200;
-  const previewDescription = isLongDescription ? `${description.slice(0, 200).trimEnd()}…` : description;
+  const previewDescription = isLongDescription
+    ? `${description.slice(0, 200).trimEnd()}…`
+    : description;
 
   return (
     <div className="featured-episode">
@@ -70,8 +73,8 @@ const FeaturedEpisodePanel = ({
             size="lg"
           />
           <div>
-          <h2>{episode.title}</h2>
-          <p>@{episode.ownerName}</p>
+            <h2>{episode.title}</h2>
+            <p>@{episode.ownerName}</p>
           </div>
         </div>
 
@@ -96,13 +99,19 @@ const FeaturedEpisodePanel = ({
         {isLongDescription ? (
           <>
             {' '}
-            <button type="button" className="featured-episode__read-more" onClick={() => onShowDetails(episode)}>
+            <button
+              type="button"
+              className="featured-episode__read-more"
+              onClick={() => onShowDetails(episode)}
+            >
               read more
             </button>
           </>
         ) : null}
       </p>
-      {episode.categories.length > 0 ? <small>Categories: {episode.categories.join(', ')}</small> : null}
+      {episode.categories.length > 0 ? (
+        <small>Categories: {episode.categories.join(', ')}</small>
+      ) : null}
 
       <div className="featured-episode__player-slot">
         {audioUrl ? (

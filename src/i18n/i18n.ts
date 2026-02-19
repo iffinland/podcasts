@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+import type { Module } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import {
   capitalizeAll,
@@ -6,10 +7,14 @@ import {
   capitalizeFirstWord,
 } from './processors';
 
+type LocaleJson = Record<string, unknown>;
+type LocaleModule = { default: LocaleJson };
+type I18nResources = Record<string, Record<string, LocaleJson>>;
+
 // Load all locale JSON files
 const modules = import.meta.glob('./locales/**/*.json', {
   eager: true,
-}) as Record<string, any>;
+}) as Record<string, LocaleModule>;
 
 // Dynamically detect unique language codes
 export const supportedLanguages: string[] = Array.from(
@@ -24,7 +29,7 @@ export const supportedLanguages: string[] = Array.from(
 );
 
 // Construct i18n resources object
-const resources: Record<string, Record<string, any>> = {};
+const resources: I18nResources = {};
 
 for (const path in modules) {
   // Path format: './locales/en/core.json'
@@ -38,9 +43,9 @@ for (const path in modules) {
 
 i18n
   .use(initReactI18next)
-  .use(capitalizeAll as any)
-  .use(capitalizeFirstChar as any)
-  .use(capitalizeFirstWord as any)
+  .use(capitalizeAll as Module)
+  .use(capitalizeFirstChar as Module)
+  .use(capitalizeFirstWord as Module)
   .init({
     resources,
     fallbackLng: 'en',
