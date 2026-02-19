@@ -1,0 +1,36 @@
+.episode-details-modal {
+  gap: 14px;
+}
+
+.episode-details-modal h4 {
+  margin: 0;
+}
+
+.episode-details-modal__hero {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.episode-details-modal__hero-text {
+  display: grid;
+  gap: 4px;
+}
+
+.episode-details-modal__hero-text h4,
+.episode-details-modal__hero-text p,
+.episode-details-modal__hero-text small {
+  margin: 0;
+}
+
+.episode-details-modal__section {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid #e1cdae;
+  padding-top: 10px;
+}
+
+.episode-details-modal__section p {
+  margin: 0;
+}

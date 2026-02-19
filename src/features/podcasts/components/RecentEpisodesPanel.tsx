@@ -11,6 +11,13 @@ interface RecentEpisodesPanelProps {
   onPlayEpisode: (episode: PodcastEpisode) => Promise<void>;
 }
 
+const buildPreview = (value: string, limit = 200): string => {
+  if (!value) {
+    return '';
+  }
+  return value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value;
+};
+
 const RecentEpisodesPanel = ({
   episodes,
   selectedCategory,
@@ -42,9 +49,10 @@ const RecentEpisodesPanel = ({
                 alt={`${episode.title} thumbnail`}
                 size="sm"
               />
-              <div>
-              <h4>{episode.title}</h4>
-              <p>@{episode.ownerName}</p>
+              <div className="recent-episodes__text">
+                <h4>{episode.title}</h4>
+                <p>@{episode.ownerName}</p>
+                <p className="recent-episodes__description">{buildPreview(episode.description)}</p>
               </div>
             </div>
             <button type="button" onClick={() => void onPlayEpisode(episode)}>

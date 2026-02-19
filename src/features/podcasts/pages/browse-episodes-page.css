@@ -84,6 +84,16 @@
   font-family: inherit;
 }
 
+.browse-episodes__read-more {
+  border: none;
+  background: none;
+  color: #7a4a18;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .browse-episodes__pagination {
   display: flex;
   align-items: center;

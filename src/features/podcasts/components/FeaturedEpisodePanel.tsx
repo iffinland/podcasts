@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
-import { toEpisodeKey } from '../hooks/podcastKeys';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-thumbnail.css';
 
@@ -16,6 +15,7 @@ interface FeaturedEpisodePanelProps {
   onSendTip: (episode: PodcastEpisode) => void;
   onShareEpisode: (episode: PodcastEpisode) => void;
   onEmbedEpisode: (episode: PodcastEpisode) => void;
+  onShowDetails: (episode: PodcastEpisode) => void;
 }
 
 const FeaturedEpisodePanel = ({
@@ -30,6 +30,7 @@ const FeaturedEpisodePanel = ({
   onSendTip,
   onShareEpisode,
   onEmbedEpisode,
+  onShowDetails,
 }: FeaturedEpisodePanelProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastHandledAutoPlaySignalRef = useRef(autoPlaySignal);
@@ -54,6 +55,10 @@ const FeaturedEpisodePanel = ({
       </div>
     );
   }
+
+  const description = episode.description ?? '';
+  const isLongDescription = description.length > 200;
+  const previewDescription = isLongDescription ? `${description.slice(0, 200).trimEnd()}…` : description;
 
   return (
     <div className="featured-episode">
@@ -86,9 +91,18 @@ const FeaturedEpisodePanel = ({
         </div>
       </div>
 
-      <p>{episode.description}</p>
+      <p>
+        {previewDescription}
+        {isLongDescription ? (
+          <>
+            {' '}
+            <button type="button" className="featured-episode__read-more" onClick={() => onShowDetails(episode)}>
+              read more
+            </button>
+          </>
+        ) : null}
+      </p>
       {episode.categories.length > 0 ? <small>Categories: {episode.categories.join(', ')}</small> : null}
-      <small>Episode key: {toEpisodeKey(episode)}</small>
 
       <div className="featured-episode__player-slot">
         {audioUrl ? (

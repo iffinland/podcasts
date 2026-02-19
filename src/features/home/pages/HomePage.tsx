@@ -3,6 +3,7 @@ import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
 import CategoryFilterPanel from '../../podcasts/components/CategoryFilterPanel';
 import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
+import EpisodeDetailsModal from '../../podcasts/components/EpisodeDetailsModal';
 import FeaturedEpisodePanel from '../../podcasts/components/FeaturedEpisodePanel';
 import PlaylistManagerModal from '../../podcasts/components/PlaylistManagerModal';
 import RecentEpisodesPanel from '../../podcasts/components/RecentEpisodesPanel';
@@ -80,6 +81,7 @@ const HomePage = () => {
   const [autoPlaySignal, setAutoPlaySignal] = useState(0);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string | null>>({});
   const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
+  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(null);
   const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
@@ -477,6 +479,12 @@ const HomePage = () => {
         }}
         onClose={() => setTipEpisode(null)}
       />
+      <EpisodeDetailsModal
+        isOpen={Boolean(detailsEpisode)}
+        episode={detailsEpisode}
+        thumbnailUrl={detailsEpisode ? thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null : null}
+        onClose={() => setDetailsEpisode(null)}
+      />
       <EmbedCodeModal
         isOpen={Boolean(embedEpisode)}
         htmlCode={htmlEmbedCode}
@@ -500,6 +508,7 @@ const HomePage = () => {
             onSendTip={handleSendTip}
             onShareEpisode={handleShareEpisode}
             onEmbedEpisode={handleEmbedEpisode}
+            onShowDetails={(episode) => setDetailsEpisode(episode)}
           />
         </section>
 

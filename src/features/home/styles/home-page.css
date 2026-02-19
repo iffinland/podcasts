@@ -66,6 +66,17 @@
   font-family: inherit;
 }
 
+.featured-episode__read-more {
+  display: inline-block;
+  border-radius: var(--button-radius);
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  color: inherit;
+  padding: 6px 10px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .featured-episode__actions {
   display: flex;
   gap: 8px;
@@ -124,6 +135,15 @@
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.recent-episodes__text {
+  display: grid;
+  gap: 2px;
+}
+
+.recent-episodes__description {
+  color: #6a4a28;
 }
 
 @media (max-width: 1024px) {
