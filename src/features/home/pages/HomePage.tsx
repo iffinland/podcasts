@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
 import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
+import EpisodeDetailsModal from '../../podcasts/components/EpisodeDetailsModal';
 import PlaylistManagerModal from '../../podcasts/components/PlaylistManagerModal';
 import RecentEpisodesPanel from '../../podcasts/components/RecentEpisodesPanel';
 import SendTipModal from '../../podcasts/components/SendTipModal';
@@ -53,6 +54,9 @@ const HomePage = () => {
   >({});
   const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
   const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
+  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
   const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
   const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
   const handledSharedEpisodeKey = useRef<string | null>(null);
@@ -415,6 +419,16 @@ const HomePage = () => {
         isHtmlLoading={isHtmlEmbedLoading}
         onClose={() => setEmbedEpisode(null)}
       />
+      <EpisodeDetailsModal
+        isOpen={Boolean(detailsEpisode)}
+        episode={detailsEpisode}
+        thumbnailUrl={
+          detailsEpisode
+            ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
+            : null
+        }
+        onClose={() => setDetailsEpisode(null)}
+      />
 
       <section className="home-page">
         {podcastCrud.error ? (
@@ -429,6 +443,7 @@ const HomePage = () => {
               selectedTags={selectedTags}
               thumbnailUrls={thumbnailUrls}
               onPlayEpisode={handlePlayEpisode}
+              onDetailsEpisode={(episode) => setDetailsEpisode(episode)}
               onLikeEpisode={handleToggleLike}
               onTipEpisode={handleSendTip}
               onShareEpisode={handleShareEpisode}

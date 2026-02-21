@@ -148,12 +148,20 @@ export const usePodcastCrud = () => {
     setError(null);
     setSaveProgress({
       operation: 'delete',
-      step: 'publishing-metadata',
-      message: 'Deleting episode...',
+      step: 'validating',
+      message: 'Preparing delete...',
     });
 
     try {
-      await deletePodcast(episode);
+      await deletePodcast(episode, {
+        onProgress: (update) => {
+          setSaveProgress({
+            operation: 'delete',
+            step: update.step,
+            message: update.message,
+          });
+        },
+      });
       setEpisodes((previous) =>
         previous.filter(
           (item) =>

@@ -465,6 +465,7 @@ const BrowseEpisodesPage = () => {
                       isPlaying={isPlayerOpen && isCurrentEpisode(episode)}
                       isLiked={likedByEpisodeKey.has(key)}
                       onPlay={() => handlePlayFromBrowse(episode)}
+                      onDetails={() => setDetailsEpisode(episode)}
                       onLike={() => void handleLike(episode)}
                       onTip={() => handleTip(episode)}
                       onShare={() => handleShare(episode)}

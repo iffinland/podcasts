@@ -4,6 +4,7 @@ interface EpisodeQuickActionsProps {
   isPlaying: boolean;
   isLiked: boolean;
   onPlay: () => void;
+  onDetails: () => void;
   onLike: () => void;
   onTip: () => void;
   onShare: () => void;
@@ -19,6 +20,7 @@ const EpisodeQuickActions = ({
   isPlaying,
   isLiked,
   onPlay,
+  onDetails,
   onLike,
   onTip,
   onShare,
@@ -39,6 +41,9 @@ const EpisodeQuickActions = ({
         title="Play"
       >
         ▶
+      </button>
+      <button type="button" onClick={onDetails} disabled={disableAll} title="View details">
+        🔍
       </button>
       <button
         type="button"

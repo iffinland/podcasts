@@ -685,22 +685,47 @@ export const updatePodcast = async (
   );
 };
 
-export const deletePodcast = async (episode: PodcastEpisode): Promise<void> => {
-  await requestQortal<unknown>({
-    action: 'DELETE_HOSTED_DATA',
-    hostedData: [
-      {
-        service: PODCAST_METADATA_SERVICE,
-        name: episode.ownerName,
-        identifier: episode.metadataIdentifier,
-      },
-      {
-        service: PODCAST_AUDIO_SERVICE,
-        name: episode.audio.name,
-        identifier: episode.audio.identifier,
-      },
-    ],
-  });
+export const deletePodcast = async (
+  episode: PodcastEpisode,
+  options?: PublishOptions
+): Promise<void> => {
+  const deletedMetadata: PodcastMetadata = {
+    version: 1,
+    episodeId: episode.episodeId,
+    title: episode.title,
+    description: episode.description,
+    tags: episode.tags,
+    categories: episode.categories,
+    createdAt: episode.createdAt,
+    updatedAt: Date.now(),
+    status: 'deleted',
+    audio: episode.audio,
+    thumbnail: episode.thumbnail,
+  };
+
+  emitProgress(
+    options,
+    'publishing-metadata',
+    'Publishing delete marker to QDN...'
+  );
+  await publishMetadata(
+    episode.ownerName,
+    episode.metadataIdentifier,
+    deletedMetadata
+  );
+
+  emitProgress(
+    options,
+    'verifying-metadata',
+    'Verifying delete marker on QDN...'
+  );
+  await verifyMetadataPublication(
+    episode.ownerName,
+    episode.metadataIdentifier,
+    episode.episodeId
+  );
+
+  emitProgress(options, 'completed', 'Episode marked as deleted.');
 };
 
 export const getAudioResourceUrl = async (

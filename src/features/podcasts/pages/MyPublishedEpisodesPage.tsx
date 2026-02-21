@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EmbedCodeModal from '../components/EmbedCodeModal';
 import EpisodeComposerModal from '../components/EpisodeComposerModal';
+import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
 import EpisodeQuickActions from '../components/EpisodeQuickActions';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
 import SendTipModal from '../components/SendTipModal';
@@ -31,6 +32,9 @@ const MyPublishedEpisodesPage = () => {
     Record<string, string | null>
   >({});
   const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
+  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
     null
   );
   const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
@@ -200,6 +204,16 @@ const MyPublishedEpisodesPage = () => {
         isHtmlLoading={isHtmlEmbedLoading}
         onClose={() => setEmbedEpisode(null)}
       />
+      <EpisodeDetailsModal
+        isOpen={Boolean(detailsEpisode)}
+        episode={detailsEpisode}
+        thumbnailUrl={
+          detailsEpisode
+            ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
+            : null
+        }
+        onClose={() => setDetailsEpisode(null)}
+      />
       <EpisodeComposerModal
         isOpen={Boolean(editingEpisode)}
         mode="edit"
@@ -259,6 +273,7 @@ const MyPublishedEpisodesPage = () => {
                       isPlaying={isPlayerOpen && isCurrentEpisode(episode)}
                       isLiked={likedByEpisodeKey.has(key)}
                       onPlay={() => handlePlay(episode)}
+                      onDetails={() => setDetailsEpisode(episode)}
                       onLike={() => void handleLike(episode)}
                       onTip={() => handleTip(episode)}
                       onShare={() => handleShare(episode)}

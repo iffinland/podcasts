@@ -11,6 +11,7 @@ interface RecentEpisodesPanelProps {
   selectedTags: string[];
   thumbnailUrls: Record<string, string | null>;
   onPlayEpisode: (episode: PodcastEpisode) => Promise<void>;
+  onDetailsEpisode: (episode: PodcastEpisode) => void;
   onLikeEpisode: (episode: PodcastEpisode) => Promise<void>;
   onTipEpisode: (episode: PodcastEpisode) => void;
   onShareEpisode: (episode: PodcastEpisode) => void;
@@ -33,6 +34,7 @@ const RecentEpisodesPanel = ({
   selectedTags,
   thumbnailUrls,
   onPlayEpisode,
+  onDetailsEpisode,
   onLikeEpisode,
   onTipEpisode,
   onShareEpisode,
@@ -95,6 +97,7 @@ const RecentEpisodesPanel = ({
                         isPlaying={isPlayingCurrent}
                         isLiked={isLiked}
                         onPlay={() => void onPlayEpisode(episode)}
+                        onDetails={() => onDetailsEpisode(episode)}
                         onLike={() => void onLikeEpisode(episode)}
                         onTip={() => onTipEpisode(episode)}
                         onShare={() => onShareEpisode(episode)}
