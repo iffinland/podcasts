@@ -47,7 +47,7 @@ const AppHeader = () => {
         <img src={logoSrc} alt="Q-Podcasts logo" className="app-header__logo" />
         <div className="app-header__title">
           <h1>Podcasts (BETA)</h1>
-          <p>Podcast publishing and discovery on QDN</p>
+          <p>Publishing and discovering podcasts in the Qortal community</p>
         </div>
       </div>
 

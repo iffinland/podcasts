@@ -455,7 +455,7 @@ export const publishPodcast = async (
     emitProgress(
       options,
       'uploading-thumbnail',
-      'Uploading thumbnail to QDN...'
+      'Publishing thumbnail to QDN...'
     );
 
     try {
@@ -595,7 +595,7 @@ export const updatePodcast = async (
     emitProgress(
       options,
       'uploading-audio',
-      'Uploading updated audio file to QDN...'
+      'Publishing updated audio file to QDN...'
     );
     await publishAudioFile(
       episode.ownerName,
@@ -608,7 +608,7 @@ export const updatePodcast = async (
     emitProgress(
       options,
       'uploading-thumbnail',
-      'Uploading updated thumbnail to QDN...'
+      'Publishing updated thumbnail to QDN...'
     );
 
     try {
