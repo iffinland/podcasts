@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
-import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
-import EpisodeDetailsModal from '../../podcasts/components/EpisodeDetailsModal';
-import FeaturedEpisodePanel from '../../podcasts/components/FeaturedEpisodePanel';
 import PlaylistManagerModal from '../../podcasts/components/PlaylistManagerModal';
 import RecentEpisodesPanel from '../../podcasts/components/RecentEpisodesPanel';
-import SendTipModal from '../../podcasts/components/SendTipModal';
 import { useEpisodeComposer } from '../../podcasts/context/EpisodeComposerContext';
 import { useGlobalPlayback } from '../../podcasts/context/GlobalPlaybackContext';
 import { useTagFilter } from '../../podcasts/context/TagFilterContext';
@@ -18,65 +14,6 @@ import { usePodcastSocial } from '../../podcasts/hooks/usePodcastSocial';
 import { PodcastEpisode } from '../../../types/podcast';
 import '../styles/home-page.css';
 
-const escapeHtml = (value: string): string => {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
-const buildDownloadFilename = (title: string): string => {
-  const base = title
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9_-]/g, '')
-    .slice(0, 80);
-
-  if (!base) {
-    return 'podcast_episode.mp3';
-  }
-
-  return `${base}.mp3`;
-};
-
-const buildHtmlAudioEmbedCode = (audioUrl: string, title: string): string => {
-  const safeUrl = escapeHtml(audioUrl);
-  const safeTitle = escapeHtml(title);
-  const downloadFilename = escapeHtml(buildDownloadFilename(title));
-
-  return `<figure class="q-podcast-embed">\n  <figcaption style="font-family: 'Arial', sans-serif; font-size: 20px; color: #2c3e50; font-weight: bold; margin-bottom: 10px;">${safeTitle}</figcaption>\n  <audio controls preload="none" src="${safeUrl}"></audio>\n  <div style="margin-top: 10px;">\n    <a href="${safeUrl}" download="${downloadFilename}" style="text-decoration: none; color: #555; font-size: 0.9em; font-family: Arial, sans-serif;">📥 Download this episode</a>\n  </div>\n</figure>`;
-};
-
-const copyToClipboard = async (value: string): Promise<boolean> => {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(value);
-      return true;
-    }
-  } catch {
-    // Fallback to legacy clipboard copy below.
-  }
-
-  try {
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    textarea.style.pointerEvents = 'none';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    const isCopied = document.execCommand('copy');
-    document.body.removeChild(textarea);
-    return isCopied;
-  } catch {
-    return false;
-  }
-};
-
 type TagAccumulator = {
   count: number;
   label: string;
@@ -87,7 +24,7 @@ const HomePage = () => {
   const podcastCrud = usePodcastCrud();
   const social = usePodcastSocial(activeName);
   const engagement = useEpisodeEngagement(activeName);
-  const { registerPlayHandler } = useGlobalPlayback();
+  const { playEpisode, currentEpisode } = useGlobalPlayback();
   const { setTopEpisodes } = useTopEpisodes();
   const {
     selectedTags,
@@ -100,55 +37,10 @@ const HomePage = () => {
     setAllCategories,
   } = useTagFilter();
   const composer = useEpisodeComposer();
-  const [featuredEpisode, setFeaturedEpisode] = useState<PodcastEpisode | null>(
-    null
-  );
-  const [featuredAudioUrl, setFeaturedAudioUrl] = useState<string | null>(null);
-  const [autoPlaySignal, setAutoPlaySignal] = useState(0);
   const [thumbnailUrls, setThumbnailUrls] = useState<
     Record<string, string | null>
   >({});
-  const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
-  const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
-    null
-  );
-  const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
-  const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
-  const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
   const handledSharedEpisodeKey = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!featuredEpisode && podcastCrud.episodes.length > 0) {
-      setFeaturedEpisode(podcastCrud.episodes[0]);
-    }
-  }, [featuredEpisode, podcastCrud.episodes]);
-
-  useEffect(() => {
-    if (!featuredEpisode) {
-      setFeaturedAudioUrl(null);
-      return;
-    }
-
-    let cancelled = false;
-    setFeaturedAudioUrl(null);
-
-    void podcastCrud
-      .resolveAudioUrl(featuredEpisode)
-      .then((url) => {
-        if (!cancelled) {
-          setFeaturedAudioUrl(url);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFeaturedAudioUrl(null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [featuredEpisode, podcastCrud.resolveAudioUrl]);
 
   const episodeIndex = useMemo(() => {
     return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>(
@@ -179,7 +71,7 @@ const HomePage = () => {
 
   useEffect(() => {
     setAllCategories(categoryOptions);
-    setTopCategories(categoryOptions.slice(0, 5));
+    setTopCategories(categoryOptions.slice(0, 6));
   }, [categoryOptions, setAllCategories, setTopCategories]);
 
   const filteredEpisodes = useMemo(() => {
@@ -294,7 +186,7 @@ const HomePage = () => {
       .map(({ tag, count }) => ({ tag, count }));
 
     setAllTags(ranked);
-    setTopTags(ranked.slice(0, 10));
+    setTopTags(ranked.slice(0, 8));
   }, [podcastCrud.episodes, setAllTags, setTopTags]);
 
   useEffect(() => {
@@ -324,113 +216,18 @@ const HomePage = () => {
 
   const handlePlayEpisode = useCallback(
     async (episode: PodcastEpisode) => {
-      setFeaturedEpisode(episode);
-      setAutoPlaySignal((value) => value + 1);
+      await playEpisode(episode);
       updateEpisodeParam(episode);
     },
-    [updateEpisodeParam]
+    [playEpisode, updateEpisodeParam]
   );
-
-  useEffect(() => {
-    registerPlayHandler(handlePlayEpisode);
-    return () => {
-      registerPlayHandler(null);
-    };
-  }, [registerPlayHandler, handlePlayEpisode]);
 
   const handleSelectEpisode = useCallback(
     async (episode: PodcastEpisode) => {
-      setFeaturedEpisode(episode);
-      updateEpisodeParam(episode);
+      await handlePlayEpisode(episode);
     },
-    [updateEpisodeParam]
+    [handlePlayEpisode]
   );
-
-  const handleToggleLike = async (episode: PodcastEpisode) => {
-    await engagement.toggleLike(episode);
-  };
-
-  const handleSendTip = (episode: PodcastEpisode) => {
-    setTipEpisode(episode);
-  };
-
-  const handleShareEpisode = useCallback((episode: PodcastEpisode) => {
-    const key = toEpisodeKey(episode);
-    const current = new URL(window.location.href);
-    const params = new URLSearchParams(current.search);
-    params.set('episode', key);
-    const link = `qortal://APP/Q-Podcasts?${params.toString()}`;
-
-    void copyToClipboard(link).then((isCopied) => {
-      if (!isCopied) {
-        window.prompt('Copy episode link:', link);
-      }
-    });
-  }, []);
-
-  const handleEmbedEpisode = useCallback((episode: PodcastEpisode) => {
-    setEmbedEpisode(episode);
-  }, []);
-
-  useEffect(() => {
-    if (!embedEpisode) {
-      setHtmlEmbedCode('');
-      setIsHtmlEmbedLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setIsHtmlEmbedLoading(true);
-    setHtmlEmbedCode('');
-
-    void podcastCrud
-      .resolveAudioUrl(embedEpisode)
-      .then((audioUrl) => {
-        if (cancelled) {
-          return;
-        }
-
-        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-
-        setHtmlEmbedCode('');
-      })
-      .finally(() => {
-        if (cancelled) {
-          return;
-        }
-
-        setIsHtmlEmbedLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [embedEpisode, podcastCrud.resolveAudioUrl]);
-
-  const likedByEpisodeKey = useMemo(() => {
-    return engagement.mapLikesSetByKey(podcastCrud.episodes);
-  }, [engagement.mapLikesSetByKey, podcastCrud.episodes]);
-
-  const likeCounts = useMemo(() => {
-    const next: Record<string, number> = {};
-    podcastCrud.episodes.forEach((episode) => {
-      next[episode.episodeId] = engagement.getStats(episode).likes;
-    });
-    return next;
-  }, [engagement.getStats, podcastCrud.episodes]);
-
-  const tipCounts = useMemo(() => {
-    const next: Record<string, number> = {};
-    podcastCrud.episodes.forEach((episode) => {
-      next[episode.episodeId] = engagement.getStats(episode).tips;
-    });
-    return next;
-  }, [engagement.getStats, podcastCrud.episodes]);
 
   useEffect(() => {
     const top = engagement.getTopEpisodes(podcastCrud.episodes).map((item) => ({
@@ -463,28 +260,6 @@ const HomePage = () => {
     handledSharedEpisodeKey.current = key;
     void handlePlayEpisode(target);
   }, [podcastCrud.episodes, handlePlayEpisode]);
-
-  useEffect(() => {
-    if (!featuredEpisode) {
-      return;
-    }
-
-    if (!selectedCategory) {
-      return;
-    }
-
-    if (featuredEpisode.categories.includes(selectedCategory)) {
-      return;
-    }
-
-    if (filteredEpisodes.length > 0) {
-      setFeaturedEpisode(filteredEpisodes[0]);
-      return;
-    }
-
-    setFeaturedEpisode(null);
-    setFeaturedAudioUrl(null);
-  }, [featuredEpisode, filteredEpisodes, selectedCategory]);
 
   return (
     <>
@@ -520,7 +295,7 @@ const HomePage = () => {
         isOpen={composer.isPlaylistOpen}
         onClose={composer.closePlaylists}
         activeName={activeName}
-        featuredEpisode={featuredEpisode}
+        featuredEpisode={currentEpisode}
         playlists={social.playlists}
         isLoading={social.isLoading}
         error={social.error}
@@ -531,33 +306,6 @@ const HomePage = () => {
         episodeIndex={episodeIndex}
         thumbnailUrls={thumbnailUrls}
       />
-      <SendTipModal
-        isOpen={Boolean(tipEpisode)}
-        publisherName={tipEpisode?.ownerName ?? null}
-        onSent={async (amount) => {
-          if (!tipEpisode) {
-            return;
-          }
-          await engagement.registerTip(tipEpisode, amount);
-        }}
-        onClose={() => setTipEpisode(null)}
-      />
-      <EpisodeDetailsModal
-        isOpen={Boolean(detailsEpisode)}
-        episode={detailsEpisode}
-        thumbnailUrl={
-          detailsEpisode
-            ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
-            : null
-        }
-        onClose={() => setDetailsEpisode(null)}
-      />
-      <EmbedCodeModal
-        isOpen={Boolean(embedEpisode)}
-        htmlCode={htmlEmbedCode}
-        isHtmlLoading={isHtmlEmbedLoading}
-        onClose={() => setEmbedEpisode(null)}
-      />
 
       <section className="home-page">
         {podcastCrud.error ? (
@@ -565,39 +313,6 @@ const HomePage = () => {
         ) : null}
 
         <section className="home-grid">
-          <section className="surface home-grid__top">
-            <FeaturedEpisodePanel
-              episode={featuredEpisode}
-              audioUrl={featuredAudioUrl}
-              thumbnailUrl={
-                featuredEpisode
-                  ? (thumbnailUrls[toEpisodeKey(featuredEpisode)] ?? null)
-                  : null
-              }
-              autoPlaySignal={autoPlaySignal}
-              liked={
-                featuredEpisode
-                  ? likedByEpisodeKey.has(toEpisodeKey(featuredEpisode))
-                  : false
-              }
-              likeCount={
-                featuredEpisode
-                  ? (likeCounts[featuredEpisode.episodeId] ?? 0)
-                  : 0
-              }
-              tipCount={
-                featuredEpisode
-                  ? (tipCounts[featuredEpisode.episodeId] ?? 0)
-                  : 0
-              }
-              onToggleLike={handleToggleLike}
-              onSendTip={handleSendTip}
-              onShareEpisode={handleShareEpisode}
-              onEmbedEpisode={handleEmbedEpisode}
-              onShowDetails={(episode) => setDetailsEpisode(episode)}
-            />
-          </section>
-
           <section className="surface home-grid__panel">
             <RecentEpisodesPanel
               episodes={filteredEpisodes}

@@ -1,4 +1,5 @@
 import { PodcastEpisode } from '../../../types/podcast';
+import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-thumbnail.css';
@@ -25,7 +26,8 @@ const RecentEpisodesPanel = ({
   thumbnailUrls,
   onPlayEpisode,
 }: RecentEpisodesPanelProps) => {
-  const latest = episodes.slice(0, 4);
+  const { isCurrentEpisode, isPlaying, isPlayerOpen } = useGlobalPlayback();
+  const latest = episodes.slice(0, 20);
   const filterSuffix = [
     selectedCategory,
     selectedTags.length > 0
@@ -38,7 +40,7 @@ const RecentEpisodesPanel = ({
   return (
     <section className="recent-episodes">
       <h3>
-        {filterSuffix ? `Latest 4: ${filterSuffix}` : 'Latest 4 Episodes'}
+        {filterSuffix ? `Latest 20: ${filterSuffix}` : 'Latest 20 Episodes'}
       </h3>
       {latest.length === 0 ? (
         <p>
@@ -69,7 +71,11 @@ const RecentEpisodesPanel = ({
               </div>
             </div>
             <button type="button" onClick={() => void onPlayEpisode(episode)}>
-              Play
+              {isPlayerOpen && isCurrentEpisode(episode)
+                ? isPlaying
+                  ? '● Playing'
+                  : '● Paused'
+                : 'Play'}
             </button>
           </article>
         ))}

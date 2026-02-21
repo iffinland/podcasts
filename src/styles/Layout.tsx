@@ -3,6 +3,7 @@ import { useIframe } from '../hooks/useIframeListener';
 import AppHeader from '../layout/components/AppHeader';
 import AppSidebar from '../layout/components/AppSidebar';
 import { EpisodeComposerProvider } from '../features/podcasts/context/EpisodeComposerContext';
+import FloatingMiniPlayer from '../features/podcasts/components/FloatingMiniPlayer';
 import { GlobalPlaybackProvider } from '../features/podcasts/context/GlobalPlaybackContext';
 import { TagFilterProvider } from '../features/podcasts/context/TagFilterContext';
 import { TopEpisodesProvider } from '../features/podcasts/context/TopEpisodesContext';
@@ -40,6 +41,7 @@ const Layout = () => {
                   </small>
                 </aside>
               </div>
+              <FloatingMiniPlayer />
             </div>
           </EpisodeComposerProvider>
         </TopEpisodesProvider>

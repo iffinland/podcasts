@@ -338,6 +338,12 @@ body {
   gap: 8px;
 }
 
+.app-sidebar__filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .app-sidebar__all-tags-modal {
   width: min(760px, 100%);
 }

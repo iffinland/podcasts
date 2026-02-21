@@ -1,0 +1,52 @@
+.floating-mini-player {
+  position: fixed;
+  z-index: 90;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.floating-mini-player.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.floating-mini-player__drag-handle {
+  font-size: 12px;
+  font-weight: 700;
+  cursor: grab;
+  user-select: none;
+}
+
+.floating-mini-player__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-mini-player audio {
+  width: 100%;
+  height: 34px;
+}
+
+.floating-mini-player__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.floating-mini-player__actions button {
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  border-radius: var(--button-radius);
+  padding: 6px 8px;
+  font-family: inherit;
+}
+
+.floating-mini-player__error {
+  color: #8b1f1f;
+}

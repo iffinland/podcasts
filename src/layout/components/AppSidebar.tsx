@@ -14,7 +14,8 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { openCreate, openPlaylists } = useEpisodeComposer();
-  const { playEpisode } = useGlobalPlayback();
+  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
+    useGlobalPlayback();
   const { topEpisodes } = useTopEpisodes();
   const {
     topTags,
@@ -96,21 +97,23 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
             ? 'Back to Home'
             : 'My Published Episodes'}
         </button>
-        <h2>Browse by Category</h2>
-        <button
-          type="button"
-          className="app-sidebar__tag-reset"
-          onClick={() => setIsAllCategoriesModalOpen(true)}
-        >
-          All Category's
-        </button>
-        <button
-          type="button"
-          className={`app-sidebar__tag-reset${selectedCategory === null ? ' is-active' : ''}`}
-          onClick={() => setSelectedCategory(null)}
-        >
-          All Episodes
-        </button>
+        <h2>Top 6 Category</h2>
+        <div className="app-sidebar__filter-actions">
+          <button
+            type="button"
+            className="app-sidebar__tag-reset"
+            onClick={() => setIsAllCategoriesModalOpen(true)}
+          >
+            All Categories
+          </button>
+          <button
+            type="button"
+            className={`app-sidebar__tag-reset${selectedCategory === null ? ' is-active' : ''}`}
+            onClick={() => setSelectedCategory(null)}
+          >
+            Clear selected
+          </button>
+        </div>
         {topCategories.length === 0 ? <p>No categories yet.</p> : null}
         <div className="app-sidebar__tag-cloud">
           {topCategories.map((category) => {
@@ -130,21 +133,23 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
           })}
         </div>
 
-        <h2>Top 10 Tags</h2>
-        <button
-          type="button"
-          className="app-sidebar__tag-reset"
-          onClick={() => setIsAllTagsModalOpen(true)}
-        >
-          All Tags
-        </button>
-        <button
-          type="button"
-          className={`app-sidebar__tag-reset${selectedTags.length === 0 ? ' is-active' : ''}`}
-          onClick={() => setSelectedTags([])}
-        >
-          Clear selected tags
-        </button>
+        <h2>Top 8 Tags</h2>
+        <div className="app-sidebar__filter-actions">
+          <button
+            type="button"
+            className="app-sidebar__tag-reset"
+            onClick={() => setIsAllTagsModalOpen(true)}
+          >
+            All Tags
+          </button>
+          <button
+            type="button"
+            className={`app-sidebar__tag-reset${selectedTags.length === 0 ? ' is-active' : ''}`}
+            onClick={() => setSelectedTags([])}
+          >
+            Clear selected
+          </button>
+        </div>
         {topTags.length === 0 ? <p>No tags yet.</p> : null}
         <div className="app-sidebar__tag-cloud">
           {topTags.map((item, index) => {
@@ -270,7 +275,11 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
               type="button"
               onClick={() => void playEpisode(item.episode)}
             >
-              Play
+              {isPlayerOpen && isCurrentEpisode(item.episode)
+                ? isPlaying
+                  ? '● Playing'
+                  : '● Paused'
+                : 'Play'}
             </button>
           </article>
         ))}

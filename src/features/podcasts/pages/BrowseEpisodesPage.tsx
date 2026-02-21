@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
 import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
+import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { useTagFilter } from '../context/TagFilterContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
@@ -50,7 +50,8 @@ const getVisiblePageNumbers = (current: number, total: number): number[] => {
 };
 
 const BrowseEpisodesPage = () => {
-  const navigate = useNavigate();
+  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
+    useGlobalPlayback();
   const { episodes, isLoading, error, resolveThumbnailUrl } = usePodcastCrud();
   const {
     selectedTags,
@@ -133,7 +134,7 @@ const BrowseEpisodesPage = () => {
       );
 
     setAllCategories(rankedCategories);
-    setTopCategories(rankedCategories.slice(0, 5));
+    setTopCategories(rankedCategories.slice(0, 6));
   }, [episodes, setAllCategories, setTopCategories]);
 
   useEffect(() => {
@@ -162,7 +163,7 @@ const BrowseEpisodesPage = () => {
       }));
 
     setAllTags(ranked);
-    setTopTags(ranked.slice(0, 10));
+    setTopTags(ranked.slice(0, 8));
   }, [episodes, setAllTags, setTopTags]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -226,11 +227,8 @@ const BrowseEpisodesPage = () => {
   );
   const pageNumbers = getVisiblePageNumbers(safePage, totalPages);
 
-  const handlePlayFromBrowse = (key: string) => {
-    void navigate({
-      pathname: '/',
-      search: `?episode=${encodeURIComponent(key)}`,
-    });
+  const handlePlayFromBrowse = (episode: PodcastEpisode) => {
+    void playEpisode(episode);
   };
 
   return (
@@ -354,9 +352,13 @@ const BrowseEpisodesPage = () => {
                   <div className="browse-episodes__item-actions">
                     <button
                       type="button"
-                      onClick={() => handlePlayFromBrowse(key)}
+                      onClick={() => handlePlayFromBrowse(episode)}
                     >
-                      Play
+                      {isPlayerOpen && isCurrentEpisode(episode)
+                        ? isPlaying
+                          ? '● Playing'
+                          : '● Paused'
+                        : 'Play'}
                     </button>
                     <button
                       type="button"

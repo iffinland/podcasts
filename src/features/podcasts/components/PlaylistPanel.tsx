@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
+import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { PlaylistMap } from '../hooks/usePodcastSocial';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import EpisodeThumbnail from './EpisodeThumbnail';
@@ -33,6 +34,7 @@ const PlaylistPanel = ({
   episodeIndex,
   thumbnailUrls,
 }: PlaylistPanelProps) => {
+  const { isCurrentEpisode, isPlaying, isPlayerOpen } = useGlobalPlayback();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
 
@@ -135,7 +137,11 @@ const PlaylistPanel = ({
                       onClick={() => episode && void onPlayEpisode(episode)}
                       disabled={!episode}
                     >
-                      Play
+                      {episode && isPlayerOpen && isCurrentEpisode(episode)
+                        ? isPlaying
+                          ? '● Playing'
+                          : '● Paused'
+                        : 'Play'}
                     </button>
                     <button
                       className="playlist-panel__action"
