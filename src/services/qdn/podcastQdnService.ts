@@ -20,6 +20,8 @@ const MAX_AUDIO_SIZE_BYTES = 250 * 1024 * 1024;
 const MAX_THUMBNAIL_SIZE_BYTES = 10 * 1024 * 1024;
 const METADATA_VERIFY_RETRIES = 5;
 const METADATA_VERIFY_DELAY_MS = 1500;
+const AUDIO_PUBLISH_TIMEOUT_MS = 15 * 60 * 1000;
+const IMAGE_PUBLISH_TIMEOUT_MS = 5 * 60 * 1000;
 
 interface SearchQdnResourceResult {
   name: string;
@@ -53,7 +55,15 @@ const createEpisodeId = (): string => {
     return crypto.randomUUID();
   }
 
-  return `${Date.now()}`;
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.getRandomValues === 'function'
+  ) {
+    const values = crypto.getRandomValues(new Uint32Array(1));
+    return `${Date.now()}-${values[0].toString(16)}`;
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 };
 
 const toMetadataIdentifier = (episodeId: string) => {
@@ -324,43 +334,41 @@ const publishMetadata = async (
 const publishAudioFile = async (
   ownerName: string,
   audioIdentifier: string,
-  title: string,
-  description: string,
-  tags: string[],
   audioFile: File
 ) => {
-  await requestQortal<unknown>({
-    action: 'PUBLISH_QDN_RESOURCE',
-    service: PODCAST_AUDIO_SERVICE,
-    name: ownerName,
-    identifier: audioIdentifier,
-    title,
-    description,
-    tags,
-    filename: audioFile.name,
-    file: audioFile,
-  });
+  await requestQortal<unknown>(
+    {
+      action: 'PUBLISH_QDN_RESOURCE',
+      service: PODCAST_AUDIO_SERVICE,
+      name: ownerName,
+      identifier: audioIdentifier,
+      filename: audioFile.name,
+      file: audioFile,
+    },
+    {
+      timeoutMs: AUDIO_PUBLISH_TIMEOUT_MS,
+    }
+  );
 };
 
 const publishThumbnailFile = async (
   ownerName: string,
   thumbnailIdentifier: string,
-  title: string,
-  description: string,
-  tags: string[],
   thumbnailFile: File
 ) => {
-  await requestQortal<unknown>({
-    action: 'PUBLISH_QDN_RESOURCE',
-    service: PODCAST_IMAGE_SERVICE,
-    name: ownerName,
-    identifier: thumbnailIdentifier,
-    title,
-    description,
-    tags,
-    filename: thumbnailFile.name,
-    file: thumbnailFile,
-  });
+  await requestQortal<unknown>(
+    {
+      action: 'PUBLISH_QDN_RESOURCE',
+      service: PODCAST_IMAGE_SERVICE,
+      name: ownerName,
+      identifier: thumbnailIdentifier,
+      filename: thumbnailFile.name,
+      file: thumbnailFile,
+    },
+    {
+      timeoutMs: IMAGE_PUBLISH_TIMEOUT_MS,
+    }
+  );
 };
 
 const resolveOwnerName = async (providedName?: string): Promise<string> => {
@@ -436,15 +444,12 @@ export const publishPodcast = async (
     );
   }
 
-  emitProgress(options, 'uploading-audio', 'Uploading audio file to QDN...');
-  await publishAudioFile(
-    ownerName,
-    audioIdentifier,
-    input.title,
-    input.description,
-    mergeTagsAndCategories(tags, categories),
-    input.audioFile
+  emitProgress(
+    options,
+    'uploading-audio',
+    'Publishing your Podcast file on QDN...'
   );
+  await publishAudioFile(ownerName, audioIdentifier, input.audioFile);
 
   if (input.thumbnailFile) {
     emitProgress(
@@ -457,9 +462,6 @@ export const publishPodcast = async (
       await publishThumbnailFile(
         ownerName,
         thumbnailIdentifier,
-        input.title,
-        input.description,
-        mergeTagsAndCategories(tags, categories),
         input.thumbnailFile
       );
 
@@ -598,9 +600,6 @@ export const updatePodcast = async (
     await publishAudioFile(
       episode.ownerName,
       episode.audio.identifier,
-      title,
-      description,
-      mergeTagsAndCategories(normalizedTags, normalizedCategories),
       newAudioFile
     );
   }
@@ -617,9 +616,6 @@ export const updatePodcast = async (
         episode.ownerName,
         episode.thumbnail?.identifier ??
           toThumbnailIdentifier(episode.episodeId),
-        title,
-        description,
-        mergeTagsAndCategories(normalizedTags, normalizedCategories),
         newThumbnailFile
       );
 

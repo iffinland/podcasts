@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { ThemeProvider } from '@emotion/react';
 import { lightTheme, darkTheme } from './theme';
-import { CssBaseline } from '@mui/material';
+import CssBaseline from '@mui/material/CssBaseline';
 import { EnumTheme, themeAtom } from '../../state/global/system';
 import { useAtom } from 'jotai';
 

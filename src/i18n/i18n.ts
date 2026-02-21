@@ -9,12 +9,17 @@ import {
 
 type LocaleJson = Record<string, unknown>;
 type LocaleModule = { default: LocaleJson };
-type I18nResources = Record<string, Record<string, LocaleJson>>;
+type LocaleLoader = () => Promise<LocaleModule>;
+type LanguageNamespaceLoaders = Record<string, Record<string, LocaleLoader>>;
+const FALLBACK_LANGUAGE = 'en';
+const DEFAULT_NAMESPACE = 'core';
 
-// Load all locale JSON files
-const modules = import.meta.glob('./locales/**/*.json', {
-  eager: true,
-}) as Record<string, LocaleModule>;
+const modules = import.meta.glob('./locales/**/*.json') as Record<
+  string,
+  LocaleLoader
+>;
+
+const languageNamespaceLoaders: LanguageNamespaceLoaders = {};
 
 // Dynamically detect unique language codes
 export const supportedLanguages: string[] = Array.from(
@@ -28,34 +33,90 @@ export const supportedLanguages: string[] = Array.from(
   )
 );
 
-// Construct i18n resources object
-const resources: I18nResources = {};
-
 for (const path in modules) {
   // Path format: './locales/en/core.json'
   const match = path.match(/\.\/locales\/([^/]+)\/([^/]+)\.json$/);
   if (!match) continue;
 
   const [, lang, ns] = match;
-  resources[lang] = resources[lang] || {};
-  resources[lang][ns] = modules[path].default;
+  languageNamespaceLoaders[lang] = languageNamespaceLoaders[lang] || {};
+  languageNamespaceLoaders[lang][ns] = modules[path];
 }
 
-i18n
-  .use(initReactI18next)
-  .use(capitalizeAll as Module)
-  .use(capitalizeFirstChar as Module)
-  .use(capitalizeFirstWord as Module)
-  .init({
-    resources,
-    fallbackLng: 'en',
-    lng: navigator.language,
-    supportedLngs: supportedLanguages,
-    ns: ['core'],
-    defaultNS: 'core',
-    interpolation: { escapeValue: false },
-    react: { useSuspense: false },
-    debug: import.meta.env.MODE === 'development',
-  });
+const normalizeLanguage = (value: string | null | undefined): string => {
+  const normalized = value?.toLowerCase().trim();
+  if (!normalized) {
+    return FALLBACK_LANGUAGE;
+  }
+
+  if (supportedLanguages.includes(normalized)) {
+    return normalized;
+  }
+
+  const baseLanguage = normalized.split('-')[0];
+  if (supportedLanguages.includes(baseLanguage)) {
+    return baseLanguage;
+  }
+
+  return FALLBACK_LANGUAGE;
+};
+
+const loadLanguageResources = async (language: string): Promise<string> => {
+  const resolvedLanguage = normalizeLanguage(language);
+  const namespaces =
+    languageNamespaceLoaders[resolvedLanguage] ??
+    languageNamespaceLoaders[FALLBACK_LANGUAGE];
+
+  if (!namespaces) {
+    return resolvedLanguage;
+  }
+
+  await Promise.all(
+    Object.entries(namespaces).map(async ([namespace, loader]) => {
+      if (i18n.hasResourceBundle(resolvedLanguage, namespace)) {
+        return;
+      }
+
+      const module = await loader();
+      i18n.addResourceBundle(
+        resolvedLanguage,
+        namespace,
+        module.default,
+        true,
+        true
+      );
+    })
+  );
+
+  return resolvedLanguage;
+};
+
+export const changeLanguageWithResources = async (
+  language: string
+): Promise<string> => {
+  const resolvedLanguage = await loadLanguageResources(language);
+  await i18n.changeLanguage(resolvedLanguage);
+  return resolvedLanguage;
+};
+
+export const i18nReady = (async () => {
+  const initialLanguage = await loadLanguageResources(navigator.language);
+
+  await i18n
+    .use(initReactI18next)
+    .use(capitalizeAll as Module)
+    .use(capitalizeFirstChar as Module)
+    .use(capitalizeFirstWord as Module)
+    .init({
+      fallbackLng: FALLBACK_LANGUAGE,
+      lng: initialLanguage,
+      supportedLngs: supportedLanguages,
+      ns: [DEFAULT_NAMESPACE],
+      defaultNS: DEFAULT_NAMESPACE,
+      interpolation: { escapeValue: false },
+      react: { useSuspense: false },
+      debug: import.meta.env.MODE === 'development',
+    });
+})();
 
 export default i18n;

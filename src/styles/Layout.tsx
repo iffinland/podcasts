@@ -36,7 +36,7 @@ const Layout = () => {
                 <aside className="surface app-shell__sidebar">
                   <AppSidebar side="right" />
                   <small className="app-shell__sidebar-footer">
-                    app v.0.1.1
+                    app v.0.1.2
                   </small>
                 </aside>
               </div>

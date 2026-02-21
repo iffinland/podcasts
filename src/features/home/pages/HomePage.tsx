@@ -531,56 +531,62 @@ const HomePage = () => {
         onClose={() => setEmbedEpisode(null)}
       />
 
-      {podcastCrud.error ? (
-        <p className="home-grid__error">{podcastCrud.error}</p>
-      ) : null}
+      <section className="home-page">
+        {podcastCrud.error ? (
+          <p className="home-page__error-toast">{podcastCrud.error}</p>
+        ) : null}
 
-      <section className="home-grid">
-        <section className="surface home-grid__top">
-          <FeaturedEpisodePanel
-            episode={featuredEpisode}
-            audioUrl={featuredAudioUrl}
-            thumbnailUrl={
-              featuredEpisode
-                ? (thumbnailUrls[toEpisodeKey(featuredEpisode)] ?? null)
-                : null
-            }
-            autoPlaySignal={autoPlaySignal}
-            liked={
-              featuredEpisode
-                ? likedByEpisodeKey.has(toEpisodeKey(featuredEpisode))
-                : false
-            }
-            likeCount={
-              featuredEpisode ? (likeCounts[featuredEpisode.episodeId] ?? 0) : 0
-            }
-            tipCount={
-              featuredEpisode ? (tipCounts[featuredEpisode.episodeId] ?? 0) : 0
-            }
-            onToggleLike={handleToggleLike}
-            onSendTip={handleSendTip}
-            onShareEpisode={handleShareEpisode}
-            onEmbedEpisode={handleEmbedEpisode}
-            onShowDetails={(episode) => setDetailsEpisode(episode)}
-          />
-        </section>
+        <section className="home-grid">
+          <section className="surface home-grid__top">
+            <FeaturedEpisodePanel
+              episode={featuredEpisode}
+              audioUrl={featuredAudioUrl}
+              thumbnailUrl={
+                featuredEpisode
+                  ? (thumbnailUrls[toEpisodeKey(featuredEpisode)] ?? null)
+                  : null
+              }
+              autoPlaySignal={autoPlaySignal}
+              liked={
+                featuredEpisode
+                  ? likedByEpisodeKey.has(toEpisodeKey(featuredEpisode))
+                  : false
+              }
+              likeCount={
+                featuredEpisode
+                  ? (likeCounts[featuredEpisode.episodeId] ?? 0)
+                  : 0
+              }
+              tipCount={
+                featuredEpisode
+                  ? (tipCounts[featuredEpisode.episodeId] ?? 0)
+                  : 0
+              }
+              onToggleLike={handleToggleLike}
+              onSendTip={handleSendTip}
+              onShareEpisode={handleShareEpisode}
+              onEmbedEpisode={handleEmbedEpisode}
+              onShowDetails={(episode) => setDetailsEpisode(episode)}
+            />
+          </section>
 
-        <section className="surface home-grid__panel home-grid__category-panel">
-          <CategoryFilterPanel
-            categories={categoryOptions}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
-        </section>
+          <section className="surface home-grid__panel home-grid__category-panel">
+            <CategoryFilterPanel
+              categories={categoryOptions}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+          </section>
 
-        <section className="surface home-grid__panel">
-          <RecentEpisodesPanel
-            episodes={filteredEpisodes}
-            selectedCategory={selectedCategory}
-            selectedTags={selectedTags}
-            thumbnailUrls={thumbnailUrls}
-            onPlayEpisode={handlePlayEpisode}
-          />
+          <section className="surface home-grid__panel">
+            <RecentEpisodesPanel
+              episodes={filteredEpisodes}
+              selectedCategory={selectedCategory}
+              selectedTags={selectedTags}
+              thumbnailUrls={thumbnailUrls}
+              onPlayEpisode={handlePlayEpisode}
+            />
+          </section>
         </section>
       </section>
     </>

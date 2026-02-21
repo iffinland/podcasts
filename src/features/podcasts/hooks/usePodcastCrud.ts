@@ -20,6 +20,27 @@ export interface SaveProgress {
   message: string;
 }
 
+const toFriendlySaveErrorMessage = (
+  error: unknown,
+  fallbackMessage: string
+): string => {
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  if (
+    message.includes('Qortal request timed out') &&
+    message.includes('PUBLISH_QDN_RESOURCE:AUDIO')
+  ) {
+    return 'Audio upload timed out on QDN. The file may be too large or the connection too slow. Please try again or use a smaller/compressed audio file.';
+  }
+  if (
+    message.includes('PUBLISH_QDN_RESOURCE:AUDIO') &&
+    message.includes('Metadata mismatch: title')
+  ) {
+    return 'Audio upload failed during QDN finalize (metadata mismatch). Please retry publish once. If it repeats, rename the episode slightly and try again.';
+  }
+
+  return message;
+};
+
 export const usePodcastCrud = () => {
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,10 +92,10 @@ export const usePodcastCrud = () => {
       setEpisodes((previous) => [created, ...previous]);
       return created;
     } catch (saveError) {
-      const message =
-        saveError instanceof Error
-          ? saveError.message
-          : 'Failed to publish episode.';
+      const message = toFriendlySaveErrorMessage(
+        saveError,
+        'Failed to publish episode.'
+      );
       setError(message);
       throw saveError;
     } finally {
@@ -111,10 +132,10 @@ export const usePodcastCrud = () => {
       );
       return updated;
     } catch (saveError) {
-      const message =
-        saveError instanceof Error
-          ? saveError.message
-          : 'Failed to update episode.';
+      const message = toFriendlySaveErrorMessage(
+        saveError,
+        'Failed to update episode.'
+      );
       setError(message);
       throw saveError;
     } finally {

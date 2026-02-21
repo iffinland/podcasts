@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { To, useNavigate } from 'react-router-dom';
 import { EnumTheme, themeAtom } from '../state/global/system';
 import { useSetAtom } from 'jotai';
-import { useTranslation } from 'react-i18next';
-import { supportedLanguages } from '../i18n/i18n';
+import { changeLanguageWithResources, supportedLanguages } from '../i18n/i18n';
 
 type Language =
   | 'ar'
@@ -27,8 +26,6 @@ const customWindow = window as unknown as CustomWindow;
 
 export const useIframe = () => {
   const setTheme = useSetAtom(themeAtom);
-  const { i18n } = useTranslation();
-
   const navigate = useNavigate();
   useEffect(() => {
     const themeColorDefault = customWindow?._qdnTheme;
@@ -41,7 +38,7 @@ export const useIframe = () => {
     const languageDefault = customWindow?._qdnLang;
 
     if (supportedLanguages?.includes(languageDefault)) {
-      i18n.changeLanguage(languageDefault);
+      void changeLanguageWithResources(languageDefault);
     }
 
     function handleNavigation(event: {
@@ -72,7 +69,7 @@ export const useIframe = () => {
         event.data.language
       ) {
         if (!supportedLanguages?.includes(event.data.language)) return;
-        i18n.changeLanguage(event.data.language);
+        void changeLanguageWithResources(event.data.language);
       }
     }
 

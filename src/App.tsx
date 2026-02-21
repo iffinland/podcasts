@@ -1,8 +1,14 @@
+import { Suspense, lazy } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppWrapper } from './AppWrapper';
-import HomePage from './features/home/pages/HomePage';
-import BrowseEpisodesPage from './features/podcasts/pages/BrowseEpisodesPage';
-import MyPublishedEpisodesPage from './features/podcasts/pages/MyPublishedEpisodesPage';
+
+const HomePage = lazy(() => import('./features/home/pages/HomePage'));
+const BrowseEpisodesPage = lazy(
+  () => import('./features/podcasts/pages/BrowseEpisodesPage')
+);
+const MyPublishedEpisodesPage = lazy(
+  () => import('./features/podcasts/pages/MyPublishedEpisodesPage')
+);
 
 interface CustomWindow extends Window {
   _qdnBase: string;
@@ -19,15 +25,27 @@ const router = createBrowserRouter(
       children: [
         {
           index: true,
-          element: <HomePage />,
+          element: (
+            <Suspense fallback={null}>
+              <HomePage />
+            </Suspense>
+          ),
         },
         {
           path: 'episodes',
-          element: <BrowseEpisodesPage />,
+          element: (
+            <Suspense fallback={null}>
+              <BrowseEpisodesPage />
+            </Suspense>
+          ),
         },
         {
           path: 'my-episodes',
-          element: <MyPublishedEpisodesPage />,
+          element: (
+            <Suspense fallback={null}>
+              <MyPublishedEpisodesPage />
+            </Suspense>
+          ),
         },
       ],
     },

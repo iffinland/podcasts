@@ -1,3 +1,9 @@
+.home-page {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
 .home-grid {
   flex: 1;
   height: 100%;
@@ -8,13 +14,20 @@
   grid-template-rows: 320px auto minmax(0, 1fr);
 }
 
-.home-grid__error {
-  margin: 0 0 10px 0;
+.home-page__error-toast {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 5;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid #c46868;
   background: #ffecec;
   color: #8b1f1f;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .home-grid__top,

@@ -3,6 +3,9 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
 };
 
 const REQUEST_TIMEOUT_MS = 120_000;
+interface QortalRequestOptions {
+  timeoutMs?: number;
+}
 
 const parseRequestError = (response: unknown): string | null => {
   if (response === null || response === undefined) {
@@ -58,7 +61,8 @@ export const isQortalRequestAvailable = () => {
 };
 
 export const requestQortal = async <TResponse>(
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  options?: QortalRequestOptions
 ): Promise<TResponse> => {
   if (!isQortalRequestAvailable()) {
     throw new Error(
@@ -74,6 +78,7 @@ export const requestQortal = async <TResponse>(
     typeof payload.identifier === 'string' ? payload.identifier : undefined;
   const startedAt = Date.now();
   const label = [action, service, identifier].filter(Boolean).join(':');
+  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
   let didTimeout = false;
 
   console.info(`[qortal] request:start ${label}`);
@@ -93,10 +98,10 @@ export const requestQortal = async <TResponse>(
       didTimeout = true;
       reject(
         new Error(
-          `Qortal request timed out after ${REQUEST_TIMEOUT_MS / 1000} seconds (${label}).`
+          `Qortal request timed out after ${timeoutMs / 1000} seconds (${label}).`
         )
       );
-    }, REQUEST_TIMEOUT_MS);
+    }, timeoutMs);
   });
 
   try {
