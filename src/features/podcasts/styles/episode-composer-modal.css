@@ -39,6 +39,12 @@
   font-family: inherit;
 }
 
+.episode-modal__head button {
+  background: var(--close-btn-bg);
+  border-color: var(--close-btn-border);
+  color: var(--close-btn-text);
+}
+
 .episode-modal__form {
   display: grid;
   gap: 8px;

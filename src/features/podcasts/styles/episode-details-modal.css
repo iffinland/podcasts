@@ -24,6 +24,16 @@
   margin: 0;
 }
 
+.episode-details-modal__play {
+  margin-top: 6px;
+  width: fit-content;
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  border-radius: var(--button-radius);
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
 .episode-details-modal__section {
   display: grid;
   gap: 6px;

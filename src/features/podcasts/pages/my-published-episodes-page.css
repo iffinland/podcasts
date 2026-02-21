@@ -31,7 +31,7 @@
   padding: 10px;
   background: #fdf5e8;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: start;
 }
@@ -43,21 +43,9 @@
 
 .my-episodes__item-actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
   flex-wrap: wrap;
-}
-
-.my-episodes__item-actions button {
-  border: 1px solid var(--border-soft);
-  background: var(--field-bg);
-  border-radius: var(--button-radius);
-  padding: 6px 10px;
-  font-family: inherit;
-}
-
-.my-episodes__danger {
-  background: #f6d4c6;
-  border-color: #d7a490;
 }
 
 .my-episodes__error {

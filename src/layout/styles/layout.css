@@ -9,6 +9,12 @@
   --scrollbar-track: #efe1cd;
   --scrollbar-thumb: #c2a178;
   --scrollbar-thumb-hover: #ae8b59;
+  --close-btn-bg: #fdeceb;
+  --close-btn-border: #d9a4a0;
+  --close-btn-text: #7f2a2a;
+  --danger-btn-bg: #d82323;
+  --danger-btn-border: #9f1010;
+  --danger-btn-text: #fff4f4;
 }
 
 * {
@@ -278,6 +284,12 @@ body {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.app-sidebar__primary-action.is-home-return {
+  background: #dff4e2;
+  border-color: #6cab76;
+  font-weight: 700;
 }
 
 .app-sidebar__ranking {

@@ -53,8 +53,9 @@
 }
 
 .podcast-crud__danger {
-  background: #f6d4c6;
-  border-color: #d7a490;
+  background: var(--danger-btn-bg);
+  border-color: var(--danger-btn-border);
+  color: var(--danger-btn-text);
 }
 
 .podcast-crud__error {

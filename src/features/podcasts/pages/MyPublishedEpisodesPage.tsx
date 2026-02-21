@@ -1,16 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useIdentity } from '../../identity/context/IdentityContext';
+import EmbedCodeModal from '../components/EmbedCodeModal';
 import EpisodeComposerModal from '../components/EpisodeComposerModal';
+import EpisodeQuickActions from '../components/EpisodeQuickActions';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
+import SendTipModal from '../components/SendTipModal';
+import { useEpisodeEngagement } from '../hooks/useEpisodeEngagement';
+import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
+import {
+  buildDownloadFilename,
+  buildHtmlAudioEmbedCode,
+} from '../utils/embedCode';
+import {
+  buildEpisodeDeepLink,
+  copyToClipboard,
+  triggerFileDownload,
+} from '../utils/shareAndClipboard';
 import { PodcastEpisode } from '../../../types/podcast';
 import './my-published-episodes-page.css';
 
 const MyPublishedEpisodesPage = () => {
-  const navigate = useNavigate();
   const { activeName } = useIdentity();
+  const engagement = useEpisodeEngagement(activeName);
+  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
+    useGlobalPlayback();
   const podcastCrud = usePodcastCrud();
   const [thumbnailUrls, setThumbnailUrls] = useState<
     Record<string, string | null>
@@ -18,6 +33,10 @@ const MyPublishedEpisodesPage = () => {
   const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(
     null
   );
+  const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
+  const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
+  const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
+  const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
 
   const myEpisodes = useMemo(() => {
     if (!activeName) {
@@ -76,10 +95,33 @@ const MyPublishedEpisodesPage = () => {
   }, [myEpisodes, podcastCrud, thumbnailUrls]);
 
   const handlePlay = (episode: PodcastEpisode) => {
-    const key = toEpisodeKey(episode);
-    void navigate({
-      pathname: '/',
-      search: `?episode=${encodeURIComponent(key)}`,
+    void playEpisode(episode);
+  };
+
+  const handleLike = async (episode: PodcastEpisode) => {
+    await engagement.toggleLike(episode);
+  };
+
+  const handleTip = (episode: PodcastEpisode) => {
+    setTipEpisode(episode);
+  };
+
+  const handleShare = (episode: PodcastEpisode) => {
+    const link = buildEpisodeDeepLink(toEpisodeKey(episode));
+    void copyToClipboard(link).then((isCopied) => {
+      if (!isCopied) {
+        window.prompt('Copy episode link:', link);
+      }
+    });
+  };
+
+  const handleEmbed = (episode: PodcastEpisode) => {
+    setEmbedEpisode(episode);
+  };
+
+  const handleDownload = (episode: PodcastEpisode) => {
+    void podcastCrud.resolveAudioUrl(episode).then((audioUrl) => {
+      triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
     });
   };
 
@@ -92,8 +134,66 @@ const MyPublishedEpisodesPage = () => {
     await podcastCrud.removeEpisode(episode);
   };
 
+  useEffect(() => {
+    if (!embedEpisode) {
+      setHtmlEmbedCode('');
+      setIsHtmlEmbedLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHtmlEmbedLoading(true);
+    setHtmlEmbedCode('');
+
+    void podcastCrud
+      .resolveAudioUrl(embedEpisode)
+      .then((audioUrl) => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode('');
+      })
+      .finally(() => {
+        if (cancelled) {
+          return;
+        }
+        setIsHtmlEmbedLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [embedEpisode, podcastCrud.resolveAudioUrl]);
+
+  const likedByEpisodeKey = useMemo(() => {
+    return engagement.mapLikesSetByKey(myEpisodes);
+  }, [engagement.mapLikesSetByKey, myEpisodes]);
+
   return (
     <>
+      <SendTipModal
+        isOpen={Boolean(tipEpisode)}
+        publisherName={tipEpisode?.ownerName ?? null}
+        onSent={async (amount) => {
+          if (!tipEpisode) {
+            return;
+          }
+          await engagement.registerTip(tipEpisode, amount);
+        }}
+        onClose={() => setTipEpisode(null)}
+      />
+      <EmbedCodeModal
+        isOpen={Boolean(embedEpisode)}
+        htmlCode={htmlEmbedCode}
+        isHtmlLoading={isHtmlEmbedLoading}
+        onClose={() => setEmbedEpisode(null)}
+      />
       <EpisodeComposerModal
         isOpen={Boolean(editingEpisode)}
         mode="edit"
@@ -148,30 +248,25 @@ const MyPublishedEpisodesPage = () => {
                   <h3>{episode.title}</h3>
                   <p>{episode.description}</p>
                   <small>{episode.tags.join(', ') || 'no tags'}</small>
-                </div>
-                <div className="my-episodes__item-actions">
-                  <button
-                    type="button"
-                    onClick={() => handlePlay(episode)}
-                    disabled={podcastCrud.isSaving}
-                  >
-                    Play
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingEpisode(episode)}
-                    disabled={podcastCrud.isSaving}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="my-episodes__danger"
-                    onClick={() => void handleDelete(episode)}
-                    disabled={podcastCrud.isSaving}
-                  >
-                    Delete
-                  </button>
+                  <div className="my-episodes__item-actions">
+                    <EpisodeQuickActions
+                      isPlaying={isPlayerOpen && isCurrentEpisode(episode)}
+                      isLiked={likedByEpisodeKey.has(key)}
+                      onPlay={() => handlePlay(episode)}
+                      onLike={() => void handleLike(episode)}
+                      onTip={() => handleTip(episode)}
+                      onShare={() => handleShare(episode)}
+                      onEmbed={() => handleEmbed(episode)}
+                      onDownload={() => handleDownload(episode)}
+                      onEdit={() => setEditingEpisode(episode)}
+                      onDelete={() => void handleDelete(episode)}
+                      disableEngagement={!activeName}
+                      disableAll={podcastCrud.isSaving}
+                    />
+                    {isPlayerOpen && isCurrentEpisode(episode) ? (
+                      <small>{isPlaying ? 'Playing now' : 'Paused'}</small>
+                    ) : null}
+                  </div>
                 </div>
               </article>
             );

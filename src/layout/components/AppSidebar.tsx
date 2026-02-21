@@ -13,6 +13,8 @@ interface AppSidebarProps {
 const AppSidebar = ({ side }: AppSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isBrowsePage = location.pathname === '/episodes';
+  const isMyEpisodesPage = location.pathname === '/my-episodes';
   const { openCreate, openPlaylists } = useEpisodeComposer();
   const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
     useGlobalPlayback();
@@ -75,27 +77,21 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         </button>
         <button
           type="button"
-          className="app-sidebar__primary-action"
+          className={`app-sidebar__primary-action${isBrowsePage ? ' is-home-return' : ''}`}
           onClick={() =>
-            void navigate(location.pathname === '/episodes' ? '/' : '/episodes')
+            void navigate(isBrowsePage ? '/' : '/episodes')
           }
         >
-          {location.pathname === '/episodes'
-            ? 'Back to Home'
-            : 'Browse all episodes'}
+          {isBrowsePage ? 'Back to Home' : 'Browse all episodes'}
         </button>
         <button
           type="button"
-          className="app-sidebar__primary-action"
+          className={`app-sidebar__primary-action${isMyEpisodesPage ? ' is-home-return' : ''}`}
           onClick={() =>
-            void navigate(
-              location.pathname === '/my-episodes' ? '/' : '/my-episodes'
-            )
+            void navigate(isMyEpisodesPage ? '/' : '/my-episodes')
           }
         >
-          {location.pathname === '/my-episodes'
-            ? 'Back to Home'
-            : 'My Published Episodes'}
+          {isMyEpisodesPage ? 'Back to Home' : 'My Published Episodes'}
         </button>
         <h2>Top 6 Category</h2>
         <div className="app-sidebar__filter-actions">

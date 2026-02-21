@@ -6,6 +6,10 @@
   padding: 10px;
   display: grid;
   gap: 8px;
+  background: linear-gradient(180deg, #fff6e9 0%, #efd7b6 100%);
+  border: 2px solid #b8864a;
+  box-shadow: 0 14px 28px rgba(62, 34, 7, 0.38),
+    0 0 0 1px rgba(255, 250, 241, 0.7) inset;
 }
 
 .floating-mini-player.is-dragging {
@@ -18,12 +22,16 @@
   font-weight: 700;
   cursor: grab;
   user-select: none;
+  color: #5b3712;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .floating-mini-player__title {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  color: #4f3210;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -45,6 +53,12 @@
   border-radius: var(--button-radius);
   padding: 6px 8px;
   font-family: inherit;
+}
+
+.floating-mini-player__actions button:last-child {
+  background: var(--close-btn-bg);
+  border-color: var(--close-btn-border);
+  color: var(--close-btn-text);
 }
 
 .floating-mini-player__error {

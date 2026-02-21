@@ -126,17 +126,8 @@
   padding: 8px;
   background: #fdf5e8;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 8px;
-}
-
-.recent-episodes__item button {
-  border-radius: var(--button-radius);
-  border: 1px solid #c7ad8b;
-  background: #fff8ef;
-  padding: 8px;
-  font-family: inherit;
 }
 
 .recent-episodes__meta {

@@ -72,16 +72,9 @@
 
 .browse-episodes__item-actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
   margin-top: 2px;
-}
-
-.browse-episodes__item-actions button {
-  border: 1px solid var(--border-soft);
-  background: var(--field-bg);
-  border-radius: var(--button-radius);
-  padding: 6px 10px;
-  font-family: inherit;
 }
 
 .browse-episodes__read-more {

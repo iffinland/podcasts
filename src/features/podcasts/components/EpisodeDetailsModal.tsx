@@ -1,4 +1,5 @@
 import { PodcastEpisode } from '../../../types/podcast';
+import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-composer-modal.css';
 import '../styles/episode-details-modal.css';
@@ -23,6 +24,9 @@ const EpisodeDetailsModal = ({
   thumbnailUrl,
   onClose,
 }: EpisodeDetailsModalProps) => {
+  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
+    useGlobalPlayback();
+
   if (!isOpen || !episode) {
     return null;
   }
@@ -51,6 +55,17 @@ const EpisodeDetailsModal = ({
             <p>@{episode.ownerName}</p>
             <small>Created: {formatTimestamp(episode.createdAt)}</small>
             <small>Updated: {formatTimestamp(episode.updatedAt)}</small>
+            <button
+              type="button"
+              className="episode-details-modal__play"
+              onClick={() => void playEpisode(episode)}
+            >
+              {isPlayerOpen && isCurrentEpisode(episode)
+                ? isPlaying
+                  ? '● Playing'
+                  : '● Paused'
+                : 'Play'}
+            </button>
           </div>
         </div>
 

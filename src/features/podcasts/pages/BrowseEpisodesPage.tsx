@@ -1,10 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
+import EmbedCodeModal from '../components/EmbedCodeModal';
+import EpisodeQuickActions from '../components/EpisodeQuickActions';
 import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
+import SendTipModal from '../components/SendTipModal';
+import { useIdentity } from '../../identity/context/IdentityContext';
+import { useEpisodeEngagement } from '../hooks/useEpisodeEngagement';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { useTagFilter } from '../context/TagFilterContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
+import {
+  buildDownloadFilename,
+  buildHtmlAudioEmbedCode,
+} from '../utils/embedCode';
+import {
+  buildEpisodeDeepLink,
+  copyToClipboard,
+  triggerFileDownload,
+} from '../utils/shareAndClipboard';
 import { PodcastEpisode } from '../../../types/podcast';
 import './browse-episodes-page.css';
 
@@ -50,9 +64,12 @@ const getVisiblePageNumbers = (current: number, total: number): number[] => {
 };
 
 const BrowseEpisodesPage = () => {
+  const { activeName } = useIdentity();
   const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
     useGlobalPlayback();
-  const { episodes, isLoading, error, resolveThumbnailUrl } = usePodcastCrud();
+  const engagement = useEpisodeEngagement(activeName);
+  const { episodes, isLoading, error, resolveThumbnailUrl, resolveAudioUrl } =
+    usePodcastCrud();
   const {
     selectedTags,
     setSelectedTags,
@@ -73,6 +90,10 @@ const BrowseEpisodesPage = () => {
   const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
     null
   );
+  const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
+  const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
+  const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
+  const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
 
   useEffect(() => {
     const missing = episodes.filter((episode) => {
@@ -231,8 +252,92 @@ const BrowseEpisodesPage = () => {
     void playEpisode(episode);
   };
 
+  const handleLike = async (episode: PodcastEpisode) => {
+    await engagement.toggleLike(episode);
+  };
+
+  const handleTip = (episode: PodcastEpisode) => {
+    setTipEpisode(episode);
+  };
+
+  const handleShare = (episode: PodcastEpisode) => {
+    const link = buildEpisodeDeepLink(toEpisodeKey(episode));
+    void copyToClipboard(link).then((isCopied) => {
+      if (!isCopied) {
+        window.prompt('Copy episode link:', link);
+      }
+    });
+  };
+
+  const handleEmbed = (episode: PodcastEpisode) => {
+    setEmbedEpisode(episode);
+  };
+
+  const handleDownload = (episode: PodcastEpisode) => {
+    void resolveAudioUrl(episode).then((audioUrl) => {
+      triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
+    });
+  };
+
+  useEffect(() => {
+    if (!embedEpisode) {
+      setHtmlEmbedCode('');
+      setIsHtmlEmbedLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHtmlEmbedLoading(true);
+    setHtmlEmbedCode('');
+
+    void resolveAudioUrl(embedEpisode)
+      .then((audioUrl) => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode('');
+      })
+      .finally(() => {
+        if (cancelled) {
+          return;
+        }
+        setIsHtmlEmbedLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [embedEpisode, resolveAudioUrl]);
+
+  const likedByEpisodeKey = useMemo(() => {
+    return engagement.mapLikesSetByKey(episodes);
+  }, [engagement.mapLikesSetByKey, episodes]);
+
   return (
     <>
+      <SendTipModal
+        isOpen={Boolean(tipEpisode)}
+        publisherName={tipEpisode?.ownerName ?? null}
+        onSent={async (amount) => {
+          if (!tipEpisode) {
+            return;
+          }
+          await engagement.registerTip(tipEpisode, amount);
+        }}
+        onClose={() => setTipEpisode(null)}
+      />
+      <EmbedCodeModal
+        isOpen={Boolean(embedEpisode)}
+        htmlCode={htmlEmbedCode}
+        isHtmlLoading={isHtmlEmbedLoading}
+        onClose={() => setEmbedEpisode(null)}
+      />
       <EpisodeDetailsModal
         isOpen={Boolean(detailsEpisode)}
         episode={detailsEpisode}
@@ -350,22 +455,20 @@ const BrowseEpisodesPage = () => {
                     <small>Categories: {episode.categories.join(', ')}</small>
                   ) : null}
                   <div className="browse-episodes__item-actions">
-                    <button
-                      type="button"
-                      onClick={() => handlePlayFromBrowse(episode)}
-                    >
-                      {isPlayerOpen && isCurrentEpisode(episode)
-                        ? isPlaying
-                          ? '● Playing'
-                          : '● Paused'
-                        : 'Play'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDetailsEpisode(episode)}
-                    >
-                      View Details
-                    </button>
+                    <EpisodeQuickActions
+                      isPlaying={isPlayerOpen && isCurrentEpisode(episode)}
+                      isLiked={likedByEpisodeKey.has(key)}
+                      onPlay={() => handlePlayFromBrowse(episode)}
+                      onLike={() => void handleLike(episode)}
+                      onTip={() => handleTip(episode)}
+                      onShare={() => handleShare(episode)}
+                      onEmbed={() => handleEmbed(episode)}
+                      onDownload={() => handleDownload(episode)}
+                      disableEngagement={!activeName}
+                    />
+                    {isPlayerOpen && isCurrentEpisode(episode) ? (
+                      <small>{isPlaying ? 'Playing now' : 'Paused'}</small>
+                    ) : null}
                   </div>
                 </div>
               </article>

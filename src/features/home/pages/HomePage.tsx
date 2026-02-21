@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
+import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
 import PlaylistManagerModal from '../../podcasts/components/PlaylistManagerModal';
 import RecentEpisodesPanel from '../../podcasts/components/RecentEpisodesPanel';
+import SendTipModal from '../../podcasts/components/SendTipModal';
 import { useEpisodeComposer } from '../../podcasts/context/EpisodeComposerContext';
 import { useGlobalPlayback } from '../../podcasts/context/GlobalPlaybackContext';
 import { useTagFilter } from '../../podcasts/context/TagFilterContext';
@@ -11,6 +13,15 @@ import { useEpisodeEngagement } from '../../podcasts/hooks/useEpisodeEngagement'
 import { toEpisodeKey } from '../../podcasts/hooks/podcastKeys';
 import { usePodcastCrud } from '../../podcasts/hooks/usePodcastCrud';
 import { usePodcastSocial } from '../../podcasts/hooks/usePodcastSocial';
+import {
+  buildDownloadFilename,
+  buildHtmlAudioEmbedCode,
+} from '../../podcasts/utils/embedCode';
+import {
+  buildEpisodeDeepLink,
+  copyToClipboard,
+  triggerFileDownload,
+} from '../../podcasts/utils/shareAndClipboard';
 import { PodcastEpisode } from '../../../types/podcast';
 import '../styles/home-page.css';
 
@@ -40,6 +51,10 @@ const HomePage = () => {
   const [thumbnailUrls, setThumbnailUrls] = useState<
     Record<string, string | null>
   >({});
+  const [tipEpisode, setTipEpisode] = useState<PodcastEpisode | null>(null);
+  const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
+  const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
+  const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
   const handledSharedEpisodeKey = useRef<string | null>(null);
 
   const episodeIndex = useMemo(() => {
@@ -229,6 +244,77 @@ const HomePage = () => {
     [handlePlayEpisode]
   );
 
+  const handleToggleLike = async (episode: PodcastEpisode) => {
+    await engagement.toggleLike(episode);
+  };
+
+  const handleSendTip = (episode: PodcastEpisode) => {
+    setTipEpisode(episode);
+  };
+
+  const handleShareEpisode = useCallback((episode: PodcastEpisode) => {
+    const link = buildEpisodeDeepLink(toEpisodeKey(episode));
+    void copyToClipboard(link).then((isCopied) => {
+      if (!isCopied) {
+        window.prompt('Copy episode link:', link);
+      }
+    });
+  }, []);
+
+  const handleEmbedEpisode = useCallback((episode: PodcastEpisode) => {
+    setEmbedEpisode(episode);
+  }, []);
+
+  const handleDownloadEpisode = useCallback(
+    (episode: PodcastEpisode) => {
+      void podcastCrud.resolveAudioUrl(episode).then((audioUrl) => {
+        triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
+      });
+    },
+    [podcastCrud.resolveAudioUrl]
+  );
+
+  useEffect(() => {
+    if (!embedEpisode) {
+      setHtmlEmbedCode('');
+      setIsHtmlEmbedLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHtmlEmbedLoading(true);
+    setHtmlEmbedCode('');
+
+    void podcastCrud
+      .resolveAudioUrl(embedEpisode)
+      .then((audioUrl) => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setHtmlEmbedCode('');
+      })
+      .finally(() => {
+        if (cancelled) {
+          return;
+        }
+        setIsHtmlEmbedLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [embedEpisode, podcastCrud.resolveAudioUrl]);
+
+  const likedByEpisodeKey = useMemo(() => {
+    return engagement.mapLikesSetByKey(podcastCrud.episodes);
+  }, [engagement.mapLikesSetByKey, podcastCrud.episodes]);
+
   useEffect(() => {
     const top = engagement.getTopEpisodes(podcastCrud.episodes).map((item) => ({
       episodeId: item.episode.episodeId,
@@ -306,6 +392,23 @@ const HomePage = () => {
         episodeIndex={episodeIndex}
         thumbnailUrls={thumbnailUrls}
       />
+      <SendTipModal
+        isOpen={Boolean(tipEpisode)}
+        publisherName={tipEpisode?.ownerName ?? null}
+        onSent={async (amount) => {
+          if (!tipEpisode) {
+            return;
+          }
+          await engagement.registerTip(tipEpisode, amount);
+        }}
+        onClose={() => setTipEpisode(null)}
+      />
+      <EmbedCodeModal
+        isOpen={Boolean(embedEpisode)}
+        htmlCode={htmlEmbedCode}
+        isHtmlLoading={isHtmlEmbedLoading}
+        onClose={() => setEmbedEpisode(null)}
+      />
 
       <section className="home-page">
         {podcastCrud.error ? (
@@ -320,6 +423,13 @@ const HomePage = () => {
               selectedTags={selectedTags}
               thumbnailUrls={thumbnailUrls}
               onPlayEpisode={handlePlayEpisode}
+              onLikeEpisode={handleToggleLike}
+              onTipEpisode={handleSendTip}
+              onShareEpisode={handleShareEpisode}
+              onEmbedEpisode={handleEmbedEpisode}
+              onDownloadEpisode={handleDownloadEpisode}
+              likedByEpisodeKey={likedByEpisodeKey}
+              disableEngagement={!activeName}
             />
           </section>
         </section>
