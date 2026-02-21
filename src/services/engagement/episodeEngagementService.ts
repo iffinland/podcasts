@@ -41,7 +41,11 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 };
 
-const feedbackIdentifier = (episodeId: string, userName: string) => {
+const feedbackIdentifier = (episodeId: string) => {
+  return `${FEEDBACK_PREFIX}${episodeId}`;
+};
+
+const legacyFeedbackIdentifier = (episodeId: string, userName: string) => {
   return `${FEEDBACK_PREFIX}${episodeId}-${userName.toLowerCase()}`;
 };
 
@@ -140,10 +144,26 @@ export const fetchUserFeedback = async (
       action: 'FETCH_QDN_RESOURCE',
       service: FEEDBACK_SERVICE,
       name: userName,
-      identifier: feedbackIdentifier(episodeId, userName),
+      identifier: feedbackIdentifier(episodeId),
     });
 
-    return parseFeedback(resource);
+    const parsed = parseFeedback(resource);
+    if (parsed) {
+      return parsed;
+    }
+  } catch {
+    // Fallback to legacy identifier below.
+  }
+
+  try {
+    const legacyResource = await requestQortal<unknown>({
+      action: 'FETCH_QDN_RESOURCE',
+      service: FEEDBACK_SERVICE,
+      name: userName,
+      identifier: legacyFeedbackIdentifier(episodeId, userName),
+    });
+
+    return parseFeedback(legacyResource);
   } catch {
     return null;
   }
@@ -172,7 +192,7 @@ export const upsertFeedback = async (
     action: 'PUBLISH_QDN_RESOURCE',
     service: FEEDBACK_SERVICE,
     name: userName,
-    identifier: feedbackIdentifier(episodeId, userName),
+    identifier: feedbackIdentifier(episodeId),
     title: `Feedback ${episodeId}`,
     description: 'Q-Podcasts engagement feedback',
     tags: ['podcast', 'feedback', 'engagement'],

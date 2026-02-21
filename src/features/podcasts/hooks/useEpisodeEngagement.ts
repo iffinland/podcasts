@@ -18,6 +18,7 @@ export const useEpisodeEngagement = (activeName: string | null) => {
   >({});
   const [likedKeys, setLikedKeys] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -72,17 +73,17 @@ export const useEpisodeEngagement = (activeName: string | null) => {
         return;
       }
 
+      const previousStats = statsByEpisode[episode.episodeId] ?? {
+        likes: 0,
+        tips: 0,
+      };
+      const wasLiked = likedKeys.has(episode.episodeId);
       const current = await fetchUserFeedback(activeName, episode.episodeId);
-      const nextLike = !(current?.like ?? false);
+      const nextLike = !(current?.like ?? wasLiked);
       const nextTipCount = current?.tipCount ?? 0;
       const nextTipTotal = current?.tipTotal ?? 0;
 
-      await upsertFeedback(activeName, episode.episodeId, {
-        like: nextLike,
-        tipCount: nextTipCount,
-        tipTotal: nextTipTotal,
-      });
-
+      setError(null);
       setStatsByEpisode((previous) => {
         const existing = previous[episode.episodeId] ?? { likes: 0, tips: 0 };
         const likes = nextLike
@@ -106,8 +107,37 @@ export const useEpisodeEngagement = (activeName: string | null) => {
         }
         return next;
       });
+
+      try {
+        await upsertFeedback(activeName, episode.episodeId, {
+          like: nextLike,
+          tipCount: nextTipCount,
+          tipTotal: nextTipTotal,
+        });
+      } catch (saveError) {
+        setStatsByEpisode((previous) => ({
+          ...previous,
+          [episode.episodeId]: previousStats,
+        }));
+        setLikedKeys((previous) => {
+          const next = new Set(previous);
+          if (wasLiked) {
+            next.add(episode.episodeId);
+          } else {
+            next.delete(episode.episodeId);
+          }
+          return next;
+        });
+
+        const message =
+          saveError instanceof Error
+            ? saveError.message
+            : 'Could not save like.';
+        setError(message);
+        throw saveError;
+      }
     },
-    [activeName]
+    [activeName, likedKeys, statsByEpisode]
   );
 
   const registerTip = useCallback(
@@ -173,6 +203,7 @@ export const useEpisodeEngagement = (activeName: string | null) => {
 
   return {
     isLoading,
+    error,
     refresh,
     toggleLike,
     registerTip,

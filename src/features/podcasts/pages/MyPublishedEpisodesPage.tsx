@@ -99,7 +99,13 @@ const MyPublishedEpisodesPage = () => {
   };
 
   const handleLike = async (episode: PodcastEpisode) => {
-    await engagement.toggleLike(episode);
+    try {
+      await engagement.toggleLike(episode);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not save like.';
+      window.alert(message);
+    }
   };
 
   const handleTip = (episode: PodcastEpisode) => {
