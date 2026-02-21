@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
 import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
-import { PODCAST_CATEGORIES } from '../constants/podcastCategories';
 import { useTagFilter } from '../context/TagFilterContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
@@ -53,8 +52,17 @@ const getVisiblePageNumbers = (current: number, total: number): number[] => {
 const BrowseEpisodesPage = () => {
   const navigate = useNavigate();
   const { episodes, isLoading, error, resolveThumbnailUrl } = usePodcastCrud();
-  const { selectedTags, setSelectedTags, setTopTags } = useTagFilter();
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const {
+    selectedTags,
+    setSelectedTags,
+    setTopTags,
+    setAllTags,
+    selectedCategory,
+    setSelectedCategory,
+    allCategories,
+    setTopCategories,
+    setAllCategories,
+  } = useTagFilter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('title-asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,6 +115,28 @@ const BrowseEpisodesPage = () => {
   }, [episodes, resolveThumbnailUrl, thumbnailUrls]);
 
   useEffect(() => {
+    const categoryCounts = episodes.reduce<Map<string, number>>(
+      (accumulator, episode) => {
+        episode.categories.forEach((category) => {
+          accumulator.set(category, (accumulator.get(category) ?? 0) + 1);
+        });
+        return accumulator;
+      },
+      new Map<string, number>()
+    );
+
+    const rankedCategories = Array.from(categoryCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort(
+        (first, second) =>
+          second.count - first.count || first.name.localeCompare(second.name)
+      );
+
+    setAllCategories(rankedCategories);
+    setTopCategories(rankedCategories.slice(0, 5));
+  }, [episodes, setAllCategories, setTopCategories]);
+
+  useEffect(() => {
     const map = episodes.reduce<Map<string, TagAccumulator>>(
       (accumulator, episode) => {
         episode.tags.forEach((tag) => {
@@ -126,14 +156,14 @@ const BrowseEpisodesPage = () => {
 
     const ranked = Array.from(map.entries())
       .sort(([, left], [, right]) => right.count - left.count)
-      .slice(0, 20)
       .map(([, value]) => ({
         tag: value.label,
         count: value.count,
       }));
 
-    setTopTags(ranked);
-  }, [episodes, setTopTags]);
+    setAllTags(ranked);
+    setTopTags(ranked.slice(0, 10));
+  }, [episodes, setAllTags, setTopTags]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -238,13 +268,15 @@ const BrowseEpisodesPage = () => {
           <label>
             Category
             <select
-              value={selectedCategory}
-              onChange={(event) => setSelectedCategory(event.target.value)}
+              value={selectedCategory ?? ''}
+              onChange={(event) =>
+                setSelectedCategory(event.target.value || null)
+              }
             >
               <option value="">All categories</option>
-              {PODCAST_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+              {allCategories.map((category) => (
+                <option key={category.name} value={category.name}>
+                  {category.name}
                 </option>
               ))}
             </select>

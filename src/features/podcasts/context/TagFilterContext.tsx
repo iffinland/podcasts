@@ -5,11 +5,24 @@ type TagCloudEntry = {
   count: number;
 };
 
+type CategoryCloudEntry = {
+  name: string;
+  count: number;
+};
+
 interface TagFilterContextValue {
   selectedTags: string[];
   setSelectedTags: (tags: string[]) => void;
   topTags: TagCloudEntry[];
   setTopTags: (items: TagCloudEntry[]) => void;
+  allTags: TagCloudEntry[];
+  setAllTags: (items: TagCloudEntry[]) => void;
+  selectedCategory: string | null;
+  setSelectedCategory: (category: string | null) => void;
+  topCategories: CategoryCloudEntry[];
+  setTopCategories: (items: CategoryCloudEntry[]) => void;
+  allCategories: CategoryCloudEntry[];
+  setAllCategories: (items: CategoryCloudEntry[]) => void;
 }
 
 const TagFilterContext = createContext<TagFilterContextValue | null>(null);
@@ -17,6 +30,10 @@ const TagFilterContext = createContext<TagFilterContextValue | null>(null);
 export const TagFilterProvider = ({ children }: { children: ReactNode }) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [topTags, setTopTags] = useState<TagCloudEntry[]>([]);
+  const [allTags, setAllTags] = useState<TagCloudEntry[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [topCategories, setTopCategories] = useState<CategoryCloudEntry[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryCloudEntry[]>([]);
 
   const value = useMemo(
     () => ({
@@ -24,8 +41,23 @@ export const TagFilterProvider = ({ children }: { children: ReactNode }) => {
       setSelectedTags,
       topTags,
       setTopTags,
+      allTags,
+      setAllTags,
+      selectedCategory,
+      setSelectedCategory,
+      topCategories,
+      setTopCategories,
+      allCategories,
+      setAllCategories,
     }),
-    [selectedTags, topTags]
+    [
+      allCategories,
+      allTags,
+      selectedCategory,
+      selectedTags,
+      topCategories,
+      topTags,
+    ]
   );
 
   return (
@@ -45,4 +77,4 @@ export const useTagFilter = () => {
   return context;
 };
 
-export type { TagCloudEntry };
+export type { CategoryCloudEntry, TagCloudEntry };

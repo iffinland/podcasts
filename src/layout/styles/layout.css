@@ -338,6 +338,19 @@ body {
   gap: 8px;
 }
 
+.app-sidebar__all-tags-modal {
+  width: min(760px, 100%);
+}
+
+.app-sidebar__all-tags-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+
 .app-shell__sidebar-footer {
   margin-top: auto;
   padding-top: 8px;

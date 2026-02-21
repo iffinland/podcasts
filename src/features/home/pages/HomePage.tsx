@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
-import CategoryFilterPanel from '../../podcasts/components/CategoryFilterPanel';
 import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
 import EpisodeDetailsModal from '../../podcasts/components/EpisodeDetailsModal';
 import FeaturedEpisodePanel from '../../podcasts/components/FeaturedEpisodePanel';
@@ -90,7 +89,16 @@ const HomePage = () => {
   const engagement = useEpisodeEngagement(activeName);
   const { registerPlayHandler } = useGlobalPlayback();
   const { setTopEpisodes } = useTopEpisodes();
-  const { selectedTags, setSelectedTags, setTopTags } = useTagFilter();
+  const {
+    selectedTags,
+    setSelectedTags,
+    setTopTags,
+    setAllTags,
+    selectedCategory,
+    setSelectedCategory,
+    setTopCategories,
+    setAllCategories,
+  } = useTagFilter();
   const composer = useEpisodeComposer();
   const [featuredEpisode, setFeaturedEpisode] = useState<PodcastEpisode | null>(
     null
@@ -105,7 +113,6 @@ const HomePage = () => {
     null
   );
   const [embedEpisode, setEmbedEpisode] = useState<PodcastEpisode | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
   const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
   const handledSharedEpisodeKey = useRef<string | null>(null);
@@ -169,6 +176,11 @@ const HomePage = () => {
           second.count - first.count || first.name.localeCompare(second.name)
       );
   }, [podcastCrud.episodes]);
+
+  useEffect(() => {
+    setAllCategories(categoryOptions);
+    setTopCategories(categoryOptions.slice(0, 5));
+  }, [categoryOptions, setAllCategories, setTopCategories]);
 
   const filteredEpisodes = useMemo(() => {
     return podcastCrud.episodes.filter((episode) => {
@@ -269,7 +281,7 @@ const HomePage = () => {
       new Map()
     );
 
-    const top = Array.from(map.entries())
+    const ranked = Array.from(map.entries())
       .map(([normalized, value]) => ({
         tag: value.label || normalized,
         normalized,
@@ -279,11 +291,11 @@ const HomePage = () => {
         (first, second) =>
           second.count - first.count || first.tag.localeCompare(second.tag)
       )
-      .slice(0, 20)
       .map(({ tag, count }) => ({ tag, count }));
 
-    setTopTags(top);
-  }, [podcastCrud.episodes, setTopTags]);
+    setAllTags(ranked);
+    setTopTags(ranked.slice(0, 10));
+  }, [podcastCrud.episodes, setAllTags, setTopTags]);
 
   useEffect(() => {
     if (selectedTags.length === 0) {
@@ -583,14 +595,6 @@ const HomePage = () => {
               onShareEpisode={handleShareEpisode}
               onEmbedEpisode={handleEmbedEpisode}
               onShowDetails={(episode) => setDetailsEpisode(episode)}
-            />
-          </section>
-
-          <section className="surface home-grid__panel home-grid__category-panel">
-            <CategoryFilterPanel
-              categories={categoryOptions}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
             />
           </section>
 

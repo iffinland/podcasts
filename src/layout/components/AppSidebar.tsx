@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEpisodeComposer } from '../../features/podcasts/context/EpisodeComposerContext';
 import { useGlobalPlayback } from '../../features/podcasts/context/GlobalPlaybackContext';
 import { useTagFilter } from '../../features/podcasts/context/TagFilterContext';
 import { useTopEpisodes } from '../../features/podcasts/context/TopEpisodesContext';
+import '../../features/podcasts/styles/episode-composer-modal.css';
 
 interface AppSidebarProps {
   side: 'left' | 'right';
@@ -14,7 +16,19 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
   const { openCreate, openPlaylists } = useEpisodeComposer();
   const { playEpisode } = useGlobalPlayback();
   const { topEpisodes } = useTopEpisodes();
-  const { topTags, selectedTags, setSelectedTags } = useTagFilter();
+  const {
+    topTags,
+    allTags,
+    selectedTags,
+    setSelectedTags,
+    selectedCategory,
+    setSelectedCategory,
+    topCategories,
+    allCategories,
+  } = useTagFilter();
+  const [isAllTagsModalOpen, setIsAllTagsModalOpen] = useState(false);
+  const [isAllCategoriesModalOpen, setIsAllCategoriesModalOpen] =
+    useState(false);
 
   const toggleTag = (tag: string) => {
     const normalized = tag.toLowerCase();
@@ -30,6 +44,14 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
     }
 
     setSelectedTags([...selectedTags, tag]);
+  };
+
+  const toggleCategory = (category: string) => {
+    if (selectedCategory === category) {
+      setSelectedCategory(null);
+      return;
+    }
+    setSelectedCategory(category);
   };
 
   if (side === 'left') {
@@ -74,13 +96,54 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
             ? 'Back to Home'
             : 'My Published Episodes'}
         </button>
-        <h2>Top 20 Tags</h2>
+        <h2>Browse by Category</h2>
+        <button
+          type="button"
+          className="app-sidebar__tag-reset"
+          onClick={() => setIsAllCategoriesModalOpen(true)}
+        >
+          All Category's
+        </button>
+        <button
+          type="button"
+          className={`app-sidebar__tag-reset${selectedCategory === null ? ' is-active' : ''}`}
+          onClick={() => setSelectedCategory(null)}
+        >
+          All Episodes
+        </button>
+        {topCategories.length === 0 ? <p>No categories yet.</p> : null}
+        <div className="app-sidebar__tag-cloud">
+          {topCategories.map((category) => {
+            const isActive = selectedCategory === category.name;
+
+            return (
+              <button
+                key={category.name}
+                type="button"
+                className={`app-sidebar__tag-chip${isActive ? ' is-active' : ''}`}
+                onClick={() => toggleCategory(category.name)}
+                title={`${category.name} (${category.count})`}
+              >
+                {category.name} ({category.count})
+              </button>
+            );
+          })}
+        </div>
+
+        <h2>Top 10 Tags</h2>
+        <button
+          type="button"
+          className="app-sidebar__tag-reset"
+          onClick={() => setIsAllTagsModalOpen(true)}
+        >
+          All Tags
+        </button>
         <button
           type="button"
           className={`app-sidebar__tag-reset${selectedTags.length === 0 ? ' is-active' : ''}`}
           onClick={() => setSelectedTags([])}
         >
-          All Tags
+          Clear selected tags
         </button>
         {topTags.length === 0 ? <p>No tags yet.</p> : null}
         <div className="app-sidebar__tag-cloud">
@@ -104,6 +167,86 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
             );
           })}
         </div>
+        {isAllCategoriesModalOpen ? (
+          <div
+            className="episode-modal__backdrop"
+            onClick={() => setIsAllCategoriesModalOpen(false)}
+          >
+            <section
+              className="episode-modal surface app-sidebar__all-tags-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="episode-modal__head">
+                <h3>All Categories</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsAllCategoriesModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+              {allCategories.length === 0 ? <p>No categories yet.</p> : null}
+              <div className="app-sidebar__all-tags-cloud">
+                {allCategories.map((category) => {
+                  const isActive = selectedCategory === category.name;
+
+                  return (
+                    <button
+                      key={category.name}
+                      type="button"
+                      className={`app-sidebar__tag-chip${isActive ? ' is-active' : ''}`}
+                      onClick={() => toggleCategory(category.name)}
+                      title={`${category.name} (${category.count})`}
+                    >
+                      {category.name} ({category.count})
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : null}
+        {isAllTagsModalOpen ? (
+          <div
+            className="episode-modal__backdrop"
+            onClick={() => setIsAllTagsModalOpen(false)}
+          >
+            <section
+              className="episode-modal surface app-sidebar__all-tags-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="episode-modal__head">
+                <h3>All Tags</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsAllTagsModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+              {allTags.length === 0 ? <p>No tags yet.</p> : null}
+              <div className="app-sidebar__all-tags-cloud">
+                {allTags.map((item) => {
+                  const isActive = selectedTags.some(
+                    (tag) => tag.toLowerCase() === item.tag.toLowerCase()
+                  );
+
+                  return (
+                    <button
+                      key={item.tag}
+                      type="button"
+                      className={`app-sidebar__tag-chip${isActive ? ' is-active' : ''}`}
+                      onClick={() => toggleTag(item.tag)}
+                      title={`${item.tag} (${item.count})`}
+                    >
+                      {item.tag} ({item.count})
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : null}
       </div>
     );
   }
