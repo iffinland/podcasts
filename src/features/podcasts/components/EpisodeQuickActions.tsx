@@ -9,6 +9,7 @@ interface EpisodeQuickActionsProps {
   onTip: () => void;
   onShare: () => void;
   onEmbed: () => void;
+  onAddToPlaylist: () => void;
   onDownload: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -25,6 +26,7 @@ const EpisodeQuickActions = ({
   onTip,
   onShare,
   onEmbed,
+  onAddToPlaylist,
   onDownload,
   onEdit,
   onDelete,
@@ -67,6 +69,14 @@ const EpisodeQuickActions = ({
       </button>
       <button type="button" onClick={onEmbed} disabled={disableAll} title="Embed code">
         {'</>'}
+      </button>
+      <button
+        type="button"
+        onClick={onAddToPlaylist}
+        disabled={disableAll}
+        title="Add to playlist"
+      >
+        🗂
       </button>
       <button type="button" onClick={onDownload} disabled={disableAll} title="Download">
         ⬇

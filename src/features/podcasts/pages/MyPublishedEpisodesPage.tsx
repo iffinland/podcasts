@@ -5,11 +5,14 @@ import EpisodeComposerModal from '../components/EpisodeComposerModal';
 import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
 import EpisodeQuickActions from '../components/EpisodeQuickActions';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
+import PlaylistManagerModal from '../components/PlaylistManagerModal';
 import SendTipModal from '../components/SendTipModal';
+import { useEpisodeComposer } from '../context/EpisodeComposerContext';
 import { useEpisodeEngagement } from '../hooks/useEpisodeEngagement';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
+import { usePodcastSocial } from '../hooks/usePodcastSocial';
 import {
   buildDownloadFilename,
   buildHtmlAudioEmbedCode,
@@ -24,8 +27,10 @@ import './my-published-episodes-page.css';
 
 const MyPublishedEpisodesPage = () => {
   const { activeName } = useIdentity();
+  const composer = useEpisodeComposer();
+  const social = usePodcastSocial(activeName);
   const engagement = useEpisodeEngagement(activeName);
-  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
+  const { playEpisode, currentEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
     useGlobalPlayback();
   const podcastCrud = usePodcastCrud();
   const [thumbnailUrls, setThumbnailUrls] = useState<
@@ -184,6 +189,15 @@ const MyPublishedEpisodesPage = () => {
   const likedByEpisodeKey = useMemo(() => {
     return engagement.mapLikesSetByKey(myEpisodes);
   }, [engagement.mapLikesSetByKey, myEpisodes]);
+  const episodeIndex = useMemo(() => {
+    return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>(
+      (accumulator, episode) => {
+        accumulator[toEpisodeKey(episode)] = episode;
+        return accumulator;
+      },
+      {}
+    );
+  }, [podcastCrud.episodes]);
 
   return (
     <>
@@ -203,6 +217,23 @@ const MyPublishedEpisodesPage = () => {
         htmlCode={htmlEmbedCode}
         isHtmlLoading={isHtmlEmbedLoading}
         onClose={() => setEmbedEpisode(null)}
+      />
+      <PlaylistManagerModal
+        isOpen={composer.isPlaylistOpen}
+        onClose={composer.closePlaylists}
+        activeName={activeName}
+        featuredEpisode={composer.playlistEpisode ?? currentEpisode}
+        playlists={social.playlists}
+        isLoading={social.isLoading}
+        error={social.error}
+        onCreatePlaylist={social.createNewPlaylist}
+        onAddEpisode={social.addEpisode}
+        onRemoveEpisode={social.removeEpisode}
+        onPlayEpisode={async (episode) => {
+          await playEpisode(episode);
+        }}
+        episodeIndex={episodeIndex}
+        thumbnailUrls={thumbnailUrls}
       />
       <EpisodeDetailsModal
         isOpen={Boolean(detailsEpisode)}
@@ -278,6 +309,7 @@ const MyPublishedEpisodesPage = () => {
                       onTip={() => handleTip(episode)}
                       onShare={() => handleShare(episode)}
                       onEmbed={() => handleEmbed(episode)}
+                      onAddToPlaylist={() => composer.openPlaylists(episode)}
                       onDownload={() => handleDownload(episode)}
                       onEdit={() => setEditingEpisode(episode)}
                       onDelete={() => void handleDelete(episode)}

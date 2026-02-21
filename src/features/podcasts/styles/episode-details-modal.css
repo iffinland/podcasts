@@ -6,11 +6,17 @@
   margin: 0;
 }
 
-.episode-details-modal__hero {
+.episode-details-modal__layout {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  flex-wrap: wrap;
+}
+
+.episode-details-modal__content {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
 }
 
 .episode-details-modal__hero-text {
@@ -43,4 +49,10 @@
 
 .episode-details-modal__section p {
   margin: 0;
+}
+
+@media (max-width: 900px) {
+  .episode-details-modal__layout {
+    flex-direction: column;
+  }
 }

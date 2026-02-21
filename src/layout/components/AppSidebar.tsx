@@ -63,26 +63,26 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         <h2>Menu</h2>
         <button
           type="button"
-          className="app-sidebar__primary-action"
-          onClick={openCreate}
-        >
-          Publish new episode
-        </button>
-        <button
-          type="button"
-          className="app-sidebar__primary-action"
-          onClick={openPlaylists}
-        >
-          My Playists
-        </button>
-        <button
-          type="button"
           className={`app-sidebar__primary-action${isBrowsePage ? ' is-home-return' : ''}`}
           onClick={() =>
             void navigate(isBrowsePage ? '/' : '/episodes')
           }
         >
-          {isBrowsePage ? 'Back to Home' : 'Browse all episodes'}
+          {isBrowsePage ? 'Back to Home' : 'Browse all Episodes'}
+        </button>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={openCreate}
+        >
+          Publish New Episode
+        </button>
+        <button
+          type="button"
+          className="app-sidebar__primary-action"
+          onClick={() => openPlaylists()}
+        >
+          My Playlists
         </button>
         <button
           type="button"

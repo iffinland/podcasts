@@ -275,6 +275,13 @@ const HomePage = () => {
     setEmbedEpisode(episode);
   }, []);
 
+  const handleAddToPlaylistEpisode = useCallback(
+    (episode: PodcastEpisode) => {
+      composer.openPlaylists(episode);
+    },
+    [composer]
+  );
+
   const handleDownloadEpisode = useCallback(
     (episode: PodcastEpisode) => {
       void podcastCrud.resolveAudioUrl(episode).then((audioUrl) => {
@@ -391,7 +398,7 @@ const HomePage = () => {
         isOpen={composer.isPlaylistOpen}
         onClose={composer.closePlaylists}
         activeName={activeName}
-        featuredEpisode={currentEpisode}
+        featuredEpisode={composer.playlistEpisode ?? currentEpisode}
         playlists={social.playlists}
         isLoading={social.isLoading}
         error={social.error}
@@ -448,6 +455,7 @@ const HomePage = () => {
               onTipEpisode={handleSendTip}
               onShareEpisode={handleShareEpisode}
               onEmbedEpisode={handleEmbedEpisode}
+              onAddToPlaylistEpisode={handleAddToPlaylistEpisode}
               onDownloadEpisode={handleDownloadEpisode}
               likedByEpisodeKey={likedByEpisodeKey}
               disableEngagement={!activeName}

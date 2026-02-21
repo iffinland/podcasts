@@ -183,7 +183,7 @@ export const useEpisodeEngagement = (activeName: string | null) => {
         })
         .filter((item) => item.likes > 0 || item.tips > 0)
         .sort((a, b) => b.likes - a.likes || b.tips - a.tips)
-        .slice(0, 6);
+        .slice(0, 15);
     },
     [statsByEpisode]
   );

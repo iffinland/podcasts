@@ -10,19 +10,22 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.1;
+  width: 96px;
+  height: 150px;
+  flex-shrink: 0;
 }
 
 .episode-thumb--sm {
-  width: 52px;
-  height: 52px;
+  width: 96px;
+  height: 150px;
 }
 
 .episode-thumb--md {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 150px;
 }
 
 .episode-thumb--lg {
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 150px;
 }

@@ -8,9 +8,10 @@ interface EpisodeComposerContextValue {
   mode: ComposerMode;
   editingEpisode: PodcastEpisode | null;
   isPlaylistOpen: boolean;
+  playlistEpisode: PodcastEpisode | null;
   openCreate: () => void;
   openEdit: (episode: PodcastEpisode) => void;
-  openPlaylists: () => void;
+  openPlaylists: (episode?: PodcastEpisode | null) => void;
   closePlaylists: () => void;
   close: () => void;
 }
@@ -29,6 +30,9 @@ export const EpisodeComposerProvider = ({
     null
   );
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [playlistEpisode, setPlaylistEpisode] = useState<PodcastEpisode | null>(
+    null
+  );
 
   const openCreate = () => {
     setMode('create');
@@ -46,12 +50,14 @@ export const EpisodeComposerProvider = ({
     setIsOpen(false);
   };
 
-  const openPlaylists = () => {
+  const openPlaylists = (episode?: PodcastEpisode | null) => {
+    setPlaylistEpisode(episode ?? null);
     setIsPlaylistOpen(true);
   };
 
   const closePlaylists = () => {
     setIsPlaylistOpen(false);
+    setPlaylistEpisode(null);
   };
 
   const value = useMemo(
@@ -60,13 +66,14 @@ export const EpisodeComposerProvider = ({
       mode,
       editingEpisode,
       isPlaylistOpen,
+      playlistEpisode,
       openCreate,
       openEdit,
       openPlaylists,
       closePlaylists,
       close,
     }),
-    [isOpen, mode, editingEpisode, isPlaylistOpen]
+    [isOpen, mode, editingEpisode, isPlaylistOpen, playlistEpisode]
   );
 
   return (

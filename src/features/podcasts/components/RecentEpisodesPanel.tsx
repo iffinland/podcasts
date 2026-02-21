@@ -16,6 +16,7 @@ interface RecentEpisodesPanelProps {
   onTipEpisode: (episode: PodcastEpisode) => void;
   onShareEpisode: (episode: PodcastEpisode) => void;
   onEmbedEpisode: (episode: PodcastEpisode) => void;
+  onAddToPlaylistEpisode: (episode: PodcastEpisode) => void;
   onDownloadEpisode: (episode: PodcastEpisode) => void;
   likedByEpisodeKey: Set<string>;
   disableEngagement: boolean;
@@ -39,6 +40,7 @@ const RecentEpisodesPanel = ({
   onTipEpisode,
   onShareEpisode,
   onEmbedEpisode,
+  onAddToPlaylistEpisode,
   onDownloadEpisode,
   likedByEpisodeKey,
   disableEngagement,
@@ -102,6 +104,7 @@ const RecentEpisodesPanel = ({
                         onTip={() => onTipEpisode(episode)}
                         onShare={() => onShareEpisode(episode)}
                         onEmbed={() => onEmbedEpisode(episode)}
+                        onAddToPlaylist={() => onAddToPlaylistEpisode(episode)}
                         onDownload={() => onDownloadEpisode(episode)}
                         disableEngagement={disableEngagement}
                       />
