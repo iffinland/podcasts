@@ -29,3 +29,13 @@
   width: 96px;
   height: 150px;
 }
+
+@media (max-width: 768px) {
+  .episode-thumb,
+  .episode-thumb--sm,
+  .episode-thumb--md,
+  .episode-thumb--lg {
+    width: 72px;
+    height: 110px;
+  }
+}

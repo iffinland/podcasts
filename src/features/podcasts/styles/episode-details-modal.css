@@ -1,6 +1,6 @@
 .episode-details-modal {
-  width: 70vw;
-  max-width: 70vw;
+  width: min(980px, 96vw);
+  max-width: 96vw;
   gap: 14px;
 }
 

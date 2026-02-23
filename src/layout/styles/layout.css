@@ -61,8 +61,8 @@ body {
 }
 
 .app-shell {
-  height: 100dvh;
   min-height: 100dvh;
+  height: auto;
   padding: 10px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -141,6 +141,10 @@ body {
 .app-shell__main > * {
   flex: 1;
   min-height: 0;
+}
+
+.app-shell__mobile-sidebars {
+  display: none;
 }
 
 .app-header__content {
@@ -431,25 +435,64 @@ body {
 }
 
 @media (max-width: 1024px) {
+  .app-shell {
+    grid-template-rows: auto auto;
+    min-height: 100dvh;
+    height: auto;
+  }
+
   .app-shell__content {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     grid-template-areas:
-      'main'
-      'left'
-      'right';
+      'aux'
+      'main';
+    align-items: start;
   }
 
   .app-shell__main {
     grid-area: main;
+    overflow: visible;
   }
 
-  .app-shell__sidebar:first-of-type {
-    grid-area: left;
+  .app-shell__sidebar {
+    display: none;
   }
 
-  .app-shell__sidebar:last-of-type {
-    grid-area: right;
+  .app-shell__mobile-sidebars {
+    grid-area: aux;
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    overflow: visible;
+  }
+
+  .app-shell__mobile-toggle-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .app-shell__mobile-toggle {
+    border: 1px solid var(--border-soft);
+    background: var(--field-bg);
+    border-radius: var(--button-radius);
+    padding: 8px 10px;
+    font-family: inherit;
+    text-align: center;
+  }
+
+  .app-shell__mobile-toggle.is-active {
+    background: #ead4b2;
+    border-color: #a78655;
+    font-weight: 700;
+  }
+
+  .app-shell__mobile-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
   }
 
   .app-header__content {
@@ -458,5 +501,53 @@ body {
 
   .app-header__account {
     width: 100%;
+  }
+
+  .app-header__actions {
+    width: 100%;
+    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-header__join-chat {
+    width: 100%;
+  }
+
+  .app-header__account {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .app-shell__header {
+    padding: 10px 12px;
+  }
+
+  .app-shell__sidebar {
+    padding: 10px;
+  }
+
+  .app-header__brand {
+    align-items: flex-start;
+  }
+
+  .app-header__logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .app-header__title h1 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .app-header__title p {
+    font-size: 13px;
   }
 }

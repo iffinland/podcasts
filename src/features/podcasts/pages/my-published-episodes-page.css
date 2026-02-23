@@ -58,3 +58,31 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 }
+
+@media (max-width: 1024px) {
+  .my-episodes {
+    height: auto;
+    overflow: visible;
+  }
+
+  .my-episodes__list {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .my-episodes {
+    padding: 10px;
+  }
+
+  .my-episodes__item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .my-episodes__item-actions {
+    margin-top: 0;
+  }
+}

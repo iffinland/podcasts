@@ -146,7 +146,40 @@
 }
 
 @media (max-width: 1024px) {
+  .home-page {
+    min-height: auto;
+  }
+
   .home-grid {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
     grid-template-rows: auto;
+  }
+
+  .recent-episodes {
+    height: auto;
+    overflow: visible;
+  }
+
+  .recent-episodes__list {
+    overflow: visible;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-grid__top,
+  .home-grid__panel {
+    padding: 10px;
+  }
+
+  .recent-episodes__item {
+    padding: 10px;
+  }
+
+  .recent-episodes__meta {
+    flex-direction: column;
+    gap: 8px;
   }
 }

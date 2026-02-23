@@ -112,3 +112,40 @@
   color: #8e3121;
   font-weight: 700;
 }
+
+@media (max-width: 1024px) {
+  .browse-episodes {
+    height: auto;
+    overflow: visible;
+  }
+
+  .browse-episodes__list {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .browse-episodes {
+    padding: 10px;
+  }
+
+  .browse-episodes__filters {
+    align-items: stretch;
+  }
+
+  .browse-episodes__search {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .browse-episodes__item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .browse-episodes__item-actions {
+    margin-top: 0;
+  }
+}
