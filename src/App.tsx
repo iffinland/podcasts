@@ -47,6 +47,14 @@ const router = createBrowserRouter(
             </Suspense>
           ),
         },
+        {
+          path: 'e/:episodeKey',
+          element: (
+            <Suspense fallback={null}>
+              <HomePage />
+            </Suspense>
+          ),
+        },
       ],
     },
   ],

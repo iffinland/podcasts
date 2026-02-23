@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import '../styles/episode-quick-actions.css';
 
 interface EpisodeQuickActionsProps {
@@ -7,7 +8,7 @@ interface EpisodeQuickActionsProps {
   onDetails: () => void;
   onLike: () => void;
   onTip: () => void;
-  onShare: () => void;
+  onShare: () => Promise<boolean>;
   onEmbed: () => void;
   onAddToPlaylist: () => void;
   onDownload: () => void;
@@ -33,6 +34,33 @@ const EpisodeQuickActions = ({
   disableEngagement = false,
   disableAll = false,
 }: EpisodeQuickActionsProps) => {
+  const [shareFeedback, setShareFeedback] = useState<
+    'copied' | 'manual' | null
+  >(null);
+  const feedbackTimeoutRef = useRef<number | null>(null);
+
+  const handleShareClick = async () => {
+    const isCopied = await onShare();
+    setShareFeedback(isCopied ? 'copied' : 'manual');
+
+    if (feedbackTimeoutRef.current !== null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    feedbackTimeoutRef.current = window.setTimeout(() => {
+      setShareFeedback(null);
+      feedbackTimeoutRef.current = null;
+    }, 1800);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current !== null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="episode-quick-actions">
       <button
@@ -64,9 +92,21 @@ const EpisodeQuickActions = ({
       >
         💸
       </button>
-      <button type="button" onClick={onShare} disabled={disableAll} title="Share link">
-        🔗
-      </button>
+      <div className="episode-quick-actions__share-wrap">
+        <button
+          type="button"
+          onClick={() => void handleShareClick()}
+          disabled={disableAll}
+          title="Share link"
+        >
+          🔗
+        </button>
+        {shareFeedback ? (
+          <span className="episode-quick-actions__share-feedback" role="status">
+            {shareFeedback === 'copied' ? 'Link copied' : 'Press Ctrl/Cmd+C'}
+          </span>
+        ) : null}
+      </div>
       <button type="button" onClick={onEmbed} disabled={disableAll} title="Embed code">
         {'</>'}
       </button>

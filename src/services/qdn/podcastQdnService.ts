@@ -568,6 +568,46 @@ export const searchPodcasts = async (
     .sort((first, second) => second.updatedAt - first.updatedAt);
 };
 
+export const getPodcastByOwnerAndEpisodeId = async (
+  ownerName: string,
+  episodeId: string
+): Promise<PodcastEpisode | null> => {
+  const normalizedOwnerName = ownerName.trim();
+  const normalizedEpisodeId = episodeId.trim();
+
+  if (!normalizedOwnerName || !normalizedEpisodeId) {
+    return null;
+  }
+
+  const metadataIdentifier = toMetadataIdentifier(normalizedEpisodeId);
+
+  try {
+    const rawMetadata = await requestQortal<unknown>({
+      action: 'FETCH_QDN_RESOURCE',
+      service: PODCAST_METADATA_SERVICE,
+      name: normalizedOwnerName,
+      identifier: metadataIdentifier,
+    });
+
+    const metadata = parsePodcastMetadata(rawMetadata);
+    if (
+      !metadata ||
+      metadata.status === 'deleted' ||
+      metadata.episodeId !== normalizedEpisodeId
+    ) {
+      return null;
+    }
+
+    return buildEpisodeFromMetadata(
+      normalizedOwnerName,
+      metadataIdentifier,
+      metadata
+    );
+  } catch {
+    return null;
+  }
+};
+
 export const updatePodcast = async (
   input: UpdatePodcastInput,
   options?: PublishOptions

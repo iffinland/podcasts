@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EpisodeComposerModal from '../../podcasts/components/EpisodeComposerModal';
 import EmbedCodeModal from '../../podcasts/components/EmbedCodeModal';
@@ -11,6 +11,7 @@ import { useGlobalPlayback } from '../../podcasts/context/GlobalPlaybackContext'
 import { useTagFilter } from '../../podcasts/context/TagFilterContext';
 import { useTopEpisodes } from '../../podcasts/context/TopEpisodesContext';
 import { useEpisodeEngagement } from '../../podcasts/hooks/useEpisodeEngagement';
+import { useOpenSharedEpisode } from '../../podcasts/hooks/useOpenSharedEpisode';
 import { toEpisodeKey } from '../../podcasts/hooks/podcastKeys';
 import { usePodcastCrud } from '../../podcasts/hooks/usePodcastCrud';
 import { usePodcastSocial } from '../../podcasts/hooks/usePodcastSocial';
@@ -59,7 +60,6 @@ const HomePage = () => {
   );
   const [htmlEmbedCode, setHtmlEmbedCode] = useState('');
   const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
-  const handledSharedEpisodeKey = useRef<string | null>(null);
 
   const episodeIndex = useMemo(() => {
     return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>(
@@ -226,19 +226,11 @@ const HomePage = () => {
     }
   }, [podcastCrud.episodes, selectedTags, setSelectedTags]);
 
-  const updateEpisodeParam = useCallback((episode: PodcastEpisode) => {
-    const key = toEpisodeKey(episode);
-    const current = new URL(window.location.href);
-    current.searchParams.set('episode', key);
-    window.history.replaceState({}, '', current.toString());
-  }, []);
-
   const handlePlayEpisode = useCallback(
     async (episode: PodcastEpisode) => {
       await playEpisode(episode);
-      updateEpisodeParam(episode);
     },
-    [playEpisode, updateEpisodeParam]
+    [playEpisode]
   );
 
   const handleSelectEpisode = useCallback(
@@ -262,13 +254,13 @@ const HomePage = () => {
     setTipEpisode(episode);
   };
 
-  const handleShareEpisode = useCallback((episode: PodcastEpisode) => {
+  const handleShareEpisode = useCallback(async (episode: PodcastEpisode) => {
     const link = buildEpisodeDeepLink(toEpisodeKey(episode));
-    void copyToClipboard(link).then((isCopied) => {
-      if (!isCopied) {
-        window.prompt('Copy episode link:', link);
-      }
-    });
+    const isCopied = await copyToClipboard(link);
+    if (!isCopied) {
+      window.prompt('Copy episode link:', link);
+    }
+    return isCopied;
   }, []);
 
   const handleEmbedEpisode = useCallback((episode: PodcastEpisode) => {
@@ -344,25 +336,19 @@ const HomePage = () => {
     setTopEpisodes(top);
   }, [engagement.getTopEpisodes, podcastCrud.episodes, setTopEpisodes]);
 
-  useEffect(() => {
-    const search = new URLSearchParams(window.location.search);
-    const key = search.get('episode');
+  const handleOpenSharedEpisode = useCallback(
+    (episode: PodcastEpisode) => {
+      setDetailsEpisode(null);
+      void handlePlayEpisode(episode);
+    },
+    [handlePlayEpisode]
+  );
 
-    if (!key || key === handledSharedEpisodeKey.current) {
-      return;
-    }
-
-    const target = podcastCrud.episodes.find(
-      (episode) => toEpisodeKey(episode) === key
-    );
-
-    if (!target) {
-      return;
-    }
-
-    handledSharedEpisodeKey.current = key;
-    void handlePlayEpisode(target);
-  }, [podcastCrud.episodes, handlePlayEpisode]);
+  useOpenSharedEpisode({
+    episodes: podcastCrud.episodes,
+    onMatch: handleOpenSharedEpisode,
+    resolveEpisodeByKey: podcastCrud.findEpisodeByKey,
+  });
 
   return (
     <>

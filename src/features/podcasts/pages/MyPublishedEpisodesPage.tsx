@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EmbedCodeModal from '../components/EmbedCodeModal';
 import EpisodeComposerModal from '../components/EpisodeComposerModal';
@@ -9,6 +9,7 @@ import PlaylistManagerModal from '../components/PlaylistManagerModal';
 import SendTipModal from '../components/SendTipModal';
 import { useEpisodeComposer } from '../context/EpisodeComposerContext';
 import { useEpisodeEngagement } from '../hooks/useEpisodeEngagement';
+import { useOpenSharedEpisode } from '../hooks/useOpenSharedEpisode';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
 import { usePodcastCrud } from '../hooks/usePodcastCrud';
@@ -121,13 +122,13 @@ const MyPublishedEpisodesPage = () => {
     setTipEpisode(episode);
   };
 
-  const handleShare = (episode: PodcastEpisode) => {
+  const handleShare = async (episode: PodcastEpisode) => {
     const link = buildEpisodeDeepLink(toEpisodeKey(episode));
-    void copyToClipboard(link).then((isCopied) => {
-      if (!isCopied) {
-        window.prompt('Copy episode link:', link);
-      }
-    });
+    const isCopied = await copyToClipboard(link);
+    if (!isCopied) {
+      window.prompt('Copy episode link:', link);
+    }
+    return isCopied;
   };
 
   const handleEmbed = (episode: PodcastEpisode) => {
@@ -148,6 +149,14 @@ const MyPublishedEpisodesPage = () => {
 
     await podcastCrud.removeEpisode(episode);
   };
+
+  const handleOpenSharedEpisode = useCallback(
+    (episode: PodcastEpisode) => {
+      setDetailsEpisode(null);
+      void playEpisode(episode);
+    },
+    [playEpisode]
+  );
 
   useEffect(() => {
     if (!embedEpisode) {
@@ -198,6 +207,12 @@ const MyPublishedEpisodesPage = () => {
       {}
     );
   }, [podcastCrud.episodes]);
+
+  useOpenSharedEpisode({
+    episodes: podcastCrud.episodes,
+    onMatch: handleOpenSharedEpisode,
+    resolveEpisodeByKey: podcastCrud.findEpisodeByKey,
+  });
 
   return (
     <>

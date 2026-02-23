@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   deletePodcast,
+  getPodcastByOwnerAndEpisodeId,
   getAudioResourceUrl,
   getThumbnailResourceUrl,
   publishPodcast,
@@ -13,6 +14,7 @@ import {
   PublishPodcastInput,
   UpdatePodcastInput,
 } from '../../../types/podcast';
+import { parseEpisodeKey } from './podcastKeys';
 
 export interface SaveProgress {
   operation: 'create' | 'edit' | 'delete';
@@ -191,6 +193,49 @@ export const usePodcastCrud = () => {
     return getThumbnailResourceUrl(episode);
   }, []);
 
+  const findEpisodeByKey = useCallback(
+    async (episodeKey: string): Promise<PodcastEpisode | null> => {
+      const parsed = parseEpisodeKey(episodeKey);
+      if (!parsed) {
+        return null;
+      }
+
+      const existing = episodes.find(
+        (episode) =>
+          episode.ownerName === parsed.ownerName &&
+          episode.episodeId === parsed.episodeId
+      );
+
+      if (existing) {
+        return existing;
+      }
+
+      const resolved = await getPodcastByOwnerAndEpisodeId(
+        parsed.ownerName,
+        parsed.episodeId
+      );
+
+      if (!resolved) {
+        return null;
+      }
+
+      setEpisodes((previous) => {
+        const alreadyExists = previous.some(
+          (episode) =>
+            episode.ownerName === resolved.ownerName &&
+            episode.episodeId === resolved.episodeId
+        );
+        if (alreadyExists) {
+          return previous;
+        }
+        return [resolved, ...previous];
+      });
+
+      return resolved;
+    },
+    [episodes]
+  );
+
   return {
     episodes,
     isLoading,
@@ -203,5 +248,6 @@ export const usePodcastCrud = () => {
     removeEpisode,
     resolveAudioUrl,
     resolveThumbnailUrl,
+    findEpisodeByKey,
   };
 };

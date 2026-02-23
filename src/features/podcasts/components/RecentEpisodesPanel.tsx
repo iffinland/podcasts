@@ -14,7 +14,7 @@ interface RecentEpisodesPanelProps {
   onDetailsEpisode: (episode: PodcastEpisode) => void;
   onLikeEpisode: (episode: PodcastEpisode) => Promise<void>;
   onTipEpisode: (episode: PodcastEpisode) => void;
-  onShareEpisode: (episode: PodcastEpisode) => void;
+  onShareEpisode: (episode: PodcastEpisode) => Promise<boolean>;
   onEmbedEpisode: (episode: PodcastEpisode) => void;
   onAddToPlaylistEpisode: (episode: PodcastEpisode) => void;
   onDownloadEpisode: (episode: PodcastEpisode) => void;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
 import EmbedCodeModal from '../components/EmbedCodeModal';
 import EpisodeQuickActions from '../components/EpisodeQuickActions';
@@ -8,6 +8,7 @@ import SendTipModal from '../components/SendTipModal';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import { useEpisodeComposer } from '../context/EpisodeComposerContext';
 import { useEpisodeEngagement } from '../hooks/useEpisodeEngagement';
+import { useOpenSharedEpisode } from '../hooks/useOpenSharedEpisode';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { useTagFilter } from '../context/TagFilterContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
@@ -73,8 +74,14 @@ const BrowseEpisodesPage = () => {
   const composer = useEpisodeComposer();
   const social = usePodcastSocial(activeName);
   const engagement = useEpisodeEngagement(activeName);
-  const { episodes, isLoading, error, resolveThumbnailUrl, resolveAudioUrl } =
-    usePodcastCrud();
+  const {
+    episodes,
+    isLoading,
+    error,
+    resolveThumbnailUrl,
+    resolveAudioUrl,
+    findEpisodeByKey,
+  } = usePodcastCrud();
   const {
     selectedTags,
     setSelectedTags,
@@ -280,13 +287,13 @@ const BrowseEpisodesPage = () => {
     setTipEpisode(episode);
   };
 
-  const handleShare = (episode: PodcastEpisode) => {
+  const handleShare = async (episode: PodcastEpisode) => {
     const link = buildEpisodeDeepLink(toEpisodeKey(episode));
-    void copyToClipboard(link).then((isCopied) => {
-      if (!isCopied) {
-        window.prompt('Copy episode link:', link);
-      }
-    });
+    const isCopied = await copyToClipboard(link);
+    if (!isCopied) {
+      window.prompt('Copy episode link:', link);
+    }
+    return isCopied;
   };
 
   const handleEmbed = (episode: PodcastEpisode) => {
@@ -302,6 +309,20 @@ const BrowseEpisodesPage = () => {
       triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
     });
   };
+
+  const handleOpenSharedEpisode = useCallback(
+    (episode: PodcastEpisode) => {
+      setDetailsEpisode(null);
+      void playEpisode(episode);
+    },
+    [playEpisode]
+  );
+
+  useOpenSharedEpisode({
+    episodes,
+    onMatch: handleOpenSharedEpisode,
+    resolveEpisodeByKey: findEpisodeByKey,
+  });
 
   useEffect(() => {
     if (!embedEpisode) {

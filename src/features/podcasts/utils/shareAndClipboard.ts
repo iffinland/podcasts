@@ -27,9 +27,8 @@ export const copyToClipboard = async (value: string): Promise<boolean> => {
 };
 
 export const buildEpisodeDeepLink = (episodeKey: string): string => {
-  const params = new URLSearchParams();
-  params.set('episode', episodeKey);
-  return `qortal://APP/Q-Podcasts?${params.toString()}`;
+  const encodedKey = encodeURIComponent(episodeKey);
+  return `qortal://APP/Q-Podcasts/e/${encodedKey}`;
 };
 
 export const triggerFileDownload = (url: string, filename: string): void => {
