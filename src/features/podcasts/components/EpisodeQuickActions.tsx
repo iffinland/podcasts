@@ -4,6 +4,7 @@ import '../styles/episode-quick-actions.css';
 interface EpisodeQuickActionsProps {
   isPlaying: boolean;
   isLiked: boolean;
+  showDetailsButton?: boolean;
   onPlay: () => void;
   onDetails: () => void;
   onLike: () => void;
@@ -21,6 +22,7 @@ interface EpisodeQuickActionsProps {
 const EpisodeQuickActions = ({
   isPlaying,
   isLiked,
+  showDetailsButton = true,
   onPlay,
   onDetails,
   onLike,
@@ -72,9 +74,16 @@ const EpisodeQuickActions = ({
       >
         ▶
       </button>
-      <button type="button" onClick={onDetails} disabled={disableAll} title="View details">
-        🔍
-      </button>
+      {showDetailsButton ? (
+        <button
+          type="button"
+          onClick={onDetails}
+          disabled={disableAll}
+          title="View details"
+        >
+          🔍
+        </button>
+      ) : null}
       <button
         type="button"
         className={isLiked ? 'is-active' : ''}

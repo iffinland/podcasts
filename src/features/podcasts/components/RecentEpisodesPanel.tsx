@@ -1,6 +1,10 @@
 import { PodcastEpisode } from '../../../types/podcast';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
+import {
+  buildQortalAwarePreview,
+  renderQortalLinkedText,
+} from '../utils/qortalDescription';
 import EpisodeQuickActions from './EpisodeQuickActions';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-thumbnail.css';
@@ -21,13 +25,6 @@ interface RecentEpisodesPanelProps {
   likedByEpisodeKey: Set<string>;
   disableEngagement: boolean;
 }
-
-const buildPreview = (value: string, limit = 200): string => {
-  if (!value) {
-    return '';
-  }
-  return value.length > limit ? `${value.slice(0, limit).trimEnd()}…` : value;
-};
 
 const RecentEpisodesPanel = ({
   episodes,
@@ -93,7 +90,9 @@ const RecentEpisodesPanel = ({
                       <h4>{episode.title}</h4>
                       <p>@{episode.ownerName}</p>
                       <p className="recent-episodes__description">
-                        {buildPreview(episode.description)}
+                        {renderQortalLinkedText(
+                          buildQortalAwarePreview(episode.description).text
+                        )}
                       </p>
                       <EpisodeQuickActions
                         isPlaying={isPlayingCurrent}

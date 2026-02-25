@@ -1,13 +1,26 @@
 import { PodcastEpisode } from '../../../types/podcast';
+import { requestQortal } from '../../../services/qortal/qortalClient';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
+import EpisodeQuickActions from './EpisodeQuickActions';
+import { renderQortalLinkedTextWithOptions } from '../utils/qortalDescription';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-composer-modal.css';
 import '../styles/episode-details-modal.css';
+import '../styles/episode-quick-actions.css';
 
 interface EpisodeDetailsModalProps {
   isOpen: boolean;
   episode: PodcastEpisode | null;
   thumbnailUrl: string | null;
+  isLiked?: boolean;
+  disableEngagement?: boolean;
+  disableAll?: boolean;
+  onLike?: (episode: PodcastEpisode) => Promise<void> | void;
+  onTip?: (episode: PodcastEpisode) => void;
+  onShare?: (episode: PodcastEpisode) => Promise<boolean>;
+  onEmbed?: (episode: PodcastEpisode) => void;
+  onAddToPlaylist?: (episode: PodcastEpisode) => void;
+  onDownload?: (episode: PodcastEpisode) => void;
   onClose: () => void;
 }
 
@@ -22,10 +35,18 @@ const EpisodeDetailsModal = ({
   isOpen,
   episode,
   thumbnailUrl,
+  isLiked = false,
+  disableEngagement = false,
+  disableAll = false,
+  onLike = () => {},
+  onTip = () => {},
+  onShare = async () => false,
+  onEmbed = () => {},
+  onAddToPlaylist = () => {},
+  onDownload = () => {},
   onClose,
 }: EpisodeDetailsModalProps) => {
-  const { playEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
-    useGlobalPlayback();
+  const { playEpisode, isCurrentEpisode, isPlayerOpen } = useGlobalPlayback();
 
   if (!isOpen || !episode) {
     return null;
@@ -56,22 +77,39 @@ const EpisodeDetailsModal = ({
               <p>@{episode.ownerName}</p>
               <small>Created: {formatTimestamp(episode.createdAt)}</small>
               <small>Updated: {formatTimestamp(episode.updatedAt)}</small>
-              <button
-                type="button"
-                className="episode-details-modal__play"
-                onClick={() => void playEpisode(episode)}
-              >
-                {isPlayerOpen && isCurrentEpisode(episode)
-                  ? isPlaying
-                    ? '● Playing'
-                    : '● Paused'
-                  : 'Play'}
-              </button>
+              <EpisodeQuickActions
+                isPlaying={isPlayerOpen && isCurrentEpisode(episode)}
+                isLiked={isLiked}
+                showDetailsButton={false}
+                onPlay={() => void playEpisode(episode)}
+                onDetails={() => {}}
+                onLike={() => void onLike(episode)}
+                onTip={() => onTip(episode)}
+                onShare={() => onShare(episode)}
+                onEmbed={() => onEmbed(episode)}
+                onAddToPlaylist={() => onAddToPlaylist(episode)}
+                onDownload={() => onDownload(episode)}
+                disableEngagement={disableEngagement}
+                disableAll={disableAll}
+              />
             </div>
 
             <div className="episode-details-modal__section">
               <h4>Description</h4>
-              <p>{episode.description || 'No description provided.'}</p>
+              <p>
+                {episode.description
+                  ? renderQortalLinkedTextWithOptions(episode.description, {
+                      openInNewTab: false,
+                      onLinkClick: (link, event) => {
+                        event.preventDefault();
+                        void requestQortal<unknown>({
+                          action: 'OPEN_NEW_TAB',
+                          qortalLink: link,
+                        });
+                      },
+                    })
+                  : 'No description provided.'}
+              </p>
             </div>
 
             <div className="episode-details-modal__section">

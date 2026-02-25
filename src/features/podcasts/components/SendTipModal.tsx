@@ -1,5 +1,9 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { getNameData, sendQort } from '../../../services/qortal/walletService';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  getNameData,
+  getQortBalance,
+  sendQort,
+} from '../../../services/qortal/walletService';
 import '../styles/send-tip-modal.css';
 
 interface SendTipModalProps {
@@ -15,10 +19,38 @@ const SendTipModal = ({
   onSent,
   onClose,
 }: SendTipModalProps) => {
-  const [amount, setAmount] = useState('0.1');
+  const [amount, setAmount] = useState('0');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+
+  const loadBalance = async () => {
+    setIsBalanceLoading(true);
+    setBalanceError(null);
+    try {
+      const nextBalance = await getQortBalance();
+      setBalance(nextBalance.value);
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'Failed to load wallet balance.';
+      setBalanceError(message);
+    } finally {
+      setIsBalanceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    void loadBalance();
+  }, [isOpen]);
 
   const canSubmit = useMemo(() => {
     const parsed = Number(amount);
@@ -59,6 +91,7 @@ const SendTipModal = ({
       });
       await onSent(parsed);
       setSuccess(`Tip sent to ${publisherName}`);
+      void loadBalance();
     } catch (sendError) {
       const message =
         sendError instanceof Error ? sendError.message : 'Failed to send tip.';
@@ -85,6 +118,21 @@ const SendTipModal = ({
           className="episode-modal__form"
           onSubmit={(event) => void handleSubmit(event)}
         >
+          <div className="send-tip__wallet-bar">
+            <strong>
+              Wallet balance:{' '}
+              {balance !== null ? `${balance} QORT` : isBalanceLoading ? 'Loading...' : '-'}
+            </strong>
+            <button
+              type="button"
+              onClick={() => void loadBalance()}
+              disabled={isBalanceLoading || isSending}
+            >
+              {isBalanceLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          {balanceError ? <p className="send-tip__error">{balanceError}</p> : null}
+
           <label>
             Publisher
             <input type="text" value={publisherName ?? ''} readOnly />

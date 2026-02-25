@@ -1,3 +1,22 @@
+.send-tip__wallet-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d8be9a;
+  background: #fff4e3;
+}
+
+.send-tip__wallet-bar button {
+  border-radius: var(--button-radius);
+  border: 1px solid #c7ad8b;
+  background: #fff8ef;
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
 .send-tip__error {
   margin: 0;
   color: #8e3121;

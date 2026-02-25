@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
+import {
+  buildQortalAwarePreview,
+  renderQortalLinkedText,
+} from '../utils/qortalDescription';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/episode-thumbnail.css';
 
@@ -57,11 +61,7 @@ const FeaturedEpisodePanel = ({
     );
   }
 
-  const description = episode.description ?? '';
-  const isLongDescription = description.length > 200;
-  const previewDescription = isLongDescription
-    ? `${description.slice(0, 200).trimEnd()}…`
-    : description;
+  const preview = buildQortalAwarePreview(episode.description ?? '');
 
   return (
     <div className="featured-episode">
@@ -95,8 +95,8 @@ const FeaturedEpisodePanel = ({
       </div>
 
       <p>
-        {previewDescription}
-        {isLongDescription ? (
+        {renderQortalLinkedText(preview.text)}
+        {preview.isLong ? (
           <>
             {' '}
             <button

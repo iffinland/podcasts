@@ -1,5 +1,6 @@
 import { PodcastEpisode } from '../../../types/podcast';
 import { toEpisodeKey } from '../hooks/podcastKeys';
+import { renderQortalLinkedText } from '../utils/qortalDescription';
 import EpisodeThumbnail from './EpisodeThumbnail';
 import '../styles/podcast-crud.css';
 import '../styles/episode-thumbnail.css';
@@ -82,7 +83,7 @@ const PodcastCrudPanel = ({
                   />
                   <div>
                     <h4>{episode.title}</h4>
-                    <p>{episode.description}</p>
+                    <p>{renderQortalLinkedText(episode.description)}</p>
                     <small>
                       @{episode.ownerName} |{' '}
                       {episode.tags.join(', ') || 'no tags'}

@@ -300,7 +300,13 @@ const HomePage = () => {
         if (cancelled) {
           return;
         }
-        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+        setHtmlEmbedCode(
+          buildHtmlAudioEmbedCode(
+            audioUrl,
+            embedEpisode.title,
+            buildEpisodeDeepLink(toEpisodeKey(embedEpisode))
+          )
+        );
       })
       .catch(() => {
         if (cancelled) {
@@ -420,6 +426,17 @@ const HomePage = () => {
             ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
             : null
         }
+        isLiked={
+          detailsEpisode ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode)) : false
+        }
+        disableEngagement={!activeName}
+        disableAll={podcastCrud.isSaving}
+        onLike={handleToggleLike}
+        onTip={handleSendTip}
+        onShare={handleShareEpisode}
+        onEmbed={handleEmbedEpisode}
+        onAddToPlaylist={handleAddToPlaylistEpisode}
+        onDownload={handleDownloadEpisode}
         onClose={() => setDetailsEpisode(null)}
       />
 

@@ -18,6 +18,7 @@ import {
   buildDownloadFilename,
   buildHtmlAudioEmbedCode,
 } from '../utils/embedCode';
+import { renderQortalLinkedText } from '../utils/qortalDescription';
 import {
   buildEpisodeDeepLink,
   copyToClipboard,
@@ -175,7 +176,13 @@ const MyPublishedEpisodesPage = () => {
         if (cancelled) {
           return;
         }
-        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+        setHtmlEmbedCode(
+          buildHtmlAudioEmbedCode(
+            audioUrl,
+            embedEpisode.title,
+            buildEpisodeDeepLink(toEpisodeKey(embedEpisode))
+          )
+        );
       })
       .catch(() => {
         if (cancelled) {
@@ -258,6 +265,17 @@ const MyPublishedEpisodesPage = () => {
             ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
             : null
         }
+        isLiked={
+          detailsEpisode ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode)) : false
+        }
+        disableEngagement={!activeName}
+        disableAll={podcastCrud.isSaving}
+        onLike={handleLike}
+        onTip={handleTip}
+        onShare={handleShare}
+        onEmbed={handleEmbed}
+        onAddToPlaylist={(episode) => composer.openPlaylists(episode)}
+        onDownload={handleDownload}
         onClose={() => setDetailsEpisode(null)}
       />
       <EpisodeComposerModal
@@ -312,7 +330,7 @@ const MyPublishedEpisodesPage = () => {
                 />
                 <div className="my-episodes__item-text">
                   <h3>{episode.title}</h3>
-                  <p>{episode.description}</p>
+                  <p>{renderQortalLinkedText(episode.description)}</p>
                   <small>{episode.tags.join(', ') || 'no tags'}</small>
                   <div className="my-episodes__item-actions">
                     <EpisodeQuickActions

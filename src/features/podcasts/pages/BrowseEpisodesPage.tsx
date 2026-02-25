@@ -19,6 +19,10 @@ import {
   buildHtmlAudioEmbedCode,
 } from '../utils/embedCode';
 import {
+  buildQortalAwarePreview,
+  renderQortalLinkedText,
+} from '../utils/qortalDescription';
+import {
   buildEpisodeDeepLink,
   copyToClipboard,
   triggerFileDownload,
@@ -35,20 +39,6 @@ type TagAccumulator = {
 };
 
 type SortOrder = 'title-asc' | 'title-desc' | 'owner-asc' | 'owner-desc';
-
-const buildPreview = (
-  value: string,
-  limit = 200
-): { text: string; isLong: boolean } => {
-  if (!value) {
-    return { text: '', isLong: false };
-  }
-  const isLong = value.length > limit;
-  return {
-    text: isLong ? `${value.slice(0, limit).trimEnd()}…` : value,
-    isLong,
-  };
-};
 
 const getVisiblePageNumbers = (current: number, total: number): number[] => {
   if (total <= MAX_VISIBLE_PAGE_BUTTONS) {
@@ -340,7 +330,13 @@ const BrowseEpisodesPage = () => {
         if (cancelled) {
           return;
         }
-        setHtmlEmbedCode(buildHtmlAudioEmbedCode(audioUrl, embedEpisode.title));
+        setHtmlEmbedCode(
+          buildHtmlAudioEmbedCode(
+            audioUrl,
+            embedEpisode.title,
+            buildEpisodeDeepLink(toEpisodeKey(embedEpisode))
+          )
+        );
       })
       .catch(() => {
         if (cancelled) {
@@ -408,6 +404,16 @@ const BrowseEpisodesPage = () => {
             ? (thumbnailUrls[toEpisodeKey(detailsEpisode)] ?? null)
             : null
         }
+        isLiked={
+          detailsEpisode ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode)) : false
+        }
+        disableEngagement={!activeName}
+        onLike={handleLike}
+        onTip={handleTip}
+        onShare={handleShare}
+        onEmbed={handleEmbed}
+        onAddToPlaylist={handleAddToPlaylist}
+        onDownload={handleDownload}
         onClose={() => setDetailsEpisode(null)}
       />
       <section className="surface browse-episodes">
@@ -490,10 +496,10 @@ const BrowseEpisodesPage = () => {
                 <div className="browse-episodes__item-text">
                   <h3>{episode.title}</h3>
                   {(() => {
-                    const preview = buildPreview(episode.description);
+                    const preview = buildQortalAwarePreview(episode.description);
                     return (
                       <p>
-                        {preview.text}
+                        {renderQortalLinkedText(preview.text)}
                         {preview.isLong ? (
                           <>
                             {' '}
