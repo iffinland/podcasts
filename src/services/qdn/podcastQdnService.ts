@@ -1,3 +1,6 @@
+import { readQdnDocument, type QdnResource } from '../cache/qdnDocumentCache';
+import { draftIdentity, publishResourceOnce } from './publicationJournal';
+import { mapConcurrent } from '../qortal/mapConcurrent';
 import {
   PodcastEpisode,
   PodcastMetadata,
@@ -18,17 +21,12 @@ const MAX_CATEGORIES = 8;
 const MAX_CATEGORY_LENGTH = 48;
 const MAX_AUDIO_SIZE_BYTES = 250 * 1024 * 1024;
 const MAX_THUMBNAIL_SIZE_BYTES = 10 * 1024 * 1024;
-const METADATA_VERIFY_RETRIES = 5;
+const METADATA_VERIFY_RETRIES = 2;
 const METADATA_VERIFY_DELAY_MS = 1500;
 const AUDIO_PUBLISH_TIMEOUT_MS = 15 * 60 * 1000;
 const IMAGE_PUBLISH_TIMEOUT_MS = 5 * 60 * 1000;
 
-interface SearchQdnResourceResult {
-  name: string;
-  identifier: string;
-  created?: number;
-  updated?: number;
-}
+type SearchQdnResourceResult = QdnResource;
 
 export type PublishProgressStep =
   | 'validating'
@@ -43,7 +41,10 @@ export interface PublishProgressUpdate {
   message: string;
 }
 
-interface PublishOptions {
+export interface PublishOptions {
+  episodeId?: string;
+  operationTime?: number;
+  onVerification?: (verified: boolean) => void;
   onProgress?: (update: PublishProgressUpdate) => void;
 }
 
@@ -167,7 +168,7 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 };
 
-const parsePodcastMetadata = (raw: unknown): PodcastMetadata | null => {
+export const parsePodcastMetadata = (raw: unknown): PodcastMetadata | null => {
   let normalized: unknown = raw;
 
   if (typeof raw === 'string') {
@@ -184,7 +185,7 @@ const parsePodcastMetadata = (raw: unknown): PodcastMetadata | null => {
     }
   }
 
-  if (!isObject(normalized)) {
+  if (!isObject(normalized) || normalized.version !== 1) {
     return null;
   }
 
@@ -294,7 +295,7 @@ const parsePodcastMetadata = (raw: unknown): PodcastMetadata | null => {
   };
 };
 
-const buildEpisodeFromMetadata = (
+export const buildEpisodeFromMetadata = (
   ownerName: string,
   metadataIdentifier: string,
   metadata: PodcastMetadata
@@ -314,19 +315,29 @@ const buildEpisodeFromMetadata = (
   };
 };
 
+const truncateUtf8 = (value: string, bytes: number) => {
+  let result = '';
+  for (const character of value) {
+    if (new TextEncoder().encode(result + character).length > bytes) break;
+    result += character;
+  }
+  return result;
+};
 const publishMetadata = async (
   ownerName: string,
   metadataIdentifier: string,
   metadata: PodcastMetadata
 ) => {
-  await requestQortal<unknown>({
+  await publishResourceOnce({
     action: 'PUBLISH_QDN_RESOURCE',
     service: PODCAST_METADATA_SERVICE,
     name: ownerName,
     identifier: metadataIdentifier,
-    title: metadata.title,
-    description: metadata.description,
-    tags: mergeTagsAndCategories(metadata.tags, metadata.categories),
+    title: truncateUtf8(metadata.title, 80),
+    description: truncateUtf8(metadata.description, 240),
+    tags: mergeTagsAndCategories(metadata.tags, metadata.categories)
+      .filter((tag) => tag.length <= 20)
+      .slice(0, 5),
     base64: encodeBase64Json(metadata),
   });
 };
@@ -334,9 +345,10 @@ const publishMetadata = async (
 const publishAudioFile = async (
   ownerName: string,
   audioIdentifier: string,
-  audioFile: File
+  audioFile: File,
+  options?: PublishOptions
 ) => {
-  await requestQortal<unknown>(
+  await publishResourceOnce(
     {
       action: 'PUBLISH_QDN_RESOURCE',
       service: PODCAST_AUDIO_SERVICE,
@@ -345,8 +357,10 @@ const publishAudioFile = async (
       filename: audioFile.name,
       file: audioFile,
     },
+    AUDIO_PUBLISH_TIMEOUT_MS,
     {
-      timeoutMs: AUDIO_PUBLISH_TIMEOUT_MS,
+      onProgress: (message) =>
+        emitProgress(options, 'uploading-audio', message),
     }
   );
 };
@@ -354,9 +368,10 @@ const publishAudioFile = async (
 const publishThumbnailFile = async (
   ownerName: string,
   thumbnailIdentifier: string,
-  thumbnailFile: File
+  thumbnailFile: File,
+  options?: PublishOptions
 ) => {
-  await requestQortal<unknown>(
+  await publishResourceOnce(
     {
       action: 'PUBLISH_QDN_RESOURCE',
       service: PODCAST_IMAGE_SERVICE,
@@ -365,8 +380,10 @@ const publishThumbnailFile = async (
       filename: thumbnailFile.name,
       file: thumbnailFile,
     },
+    IMAGE_PUBLISH_TIMEOUT_MS,
     {
-      timeoutMs: IMAGE_PUBLISH_TIMEOUT_MS,
+      onProgress: (message) =>
+        emitProgress(options, 'uploading-thumbnail', message),
     }
   );
 };
@@ -390,20 +407,26 @@ const resolveOwnerName = async (providedName?: string): Promise<string> => {
 const verifyMetadataPublication = async (
   ownerName: string,
   metadataIdentifier: string,
-  expectedEpisodeId: string
+  expected: PodcastMetadata
 ) => {
   for (let attempt = 1; attempt <= METADATA_VERIFY_RETRIES; attempt += 1) {
     try {
-      const rawMetadata = await requestQortal<unknown>({
-        action: 'FETCH_QDN_RESOURCE',
-        service: PODCAST_METADATA_SERVICE,
-        name: ownerName,
-        identifier: metadataIdentifier,
-      });
+      const rawMetadata = await requestQortal<unknown>(
+        {
+          action: 'FETCH_QDN_RESOURCE',
+          service: PODCAST_METADATA_SERVICE,
+          name: ownerName,
+          identifier: metadataIdentifier,
+        },
+        { timeoutMs: 12_000 }
+      );
 
       const parsedMetadata = parsePodcastMetadata(rawMetadata);
-      if (parsedMetadata && parsedMetadata.episodeId === expectedEpisodeId) {
-        return;
+      if (
+        parsedMetadata &&
+        JSON.stringify(parsedMetadata) === JSON.stringify(expected)
+      ) {
+        return true;
       }
     } catch {
       // Retry until attempts are exhausted.
@@ -414,9 +437,7 @@ const verifyMetadataPublication = async (
     }
   }
 
-  throw new Error(
-    'Publish was submitted but metadata could not be verified on QDN yet. Please refresh in a minute.'
-  );
+  return false;
 };
 
 export const publishPodcast = async (
@@ -424,13 +445,31 @@ export const publishPodcast = async (
   options?: PublishOptions
 ): Promise<PodcastEpisode> => {
   const ownerName = await resolveOwnerName(input.ownerName);
-  const episodeId = createEpisodeId();
+  const draft = options?.episodeId
+    ? { id: options.episodeId, createdAt: options.operationTime ?? Date.now() }
+    : await draftIdentity(
+        JSON.stringify([
+          ownerName,
+          input.title,
+          input.description,
+          input.tags,
+          input.categories,
+          input.audioFile.name,
+          input.audioFile.size,
+          input.audioFile.lastModified,
+          input.thumbnailFile?.name,
+          input.thumbnailFile?.size,
+          input.thumbnailFile?.lastModified,
+        ]),
+        createEpisodeId
+      );
+  const episodeId = draft.id;
   const metadataIdentifier = toMetadataIdentifier(episodeId);
   const audioIdentifier = toAudioIdentifier(episodeId);
   const thumbnailIdentifier = toThumbnailIdentifier(episodeId);
   const tags = normalizeList(input.tags);
   const categories = normalizeList(input.categories);
-  const now = Date.now();
+  const now = options?.operationTime ?? draft.createdAt;
   let publishedThumbnail = false;
 
   emitProgress(options, 'validating', 'Validating episode data...');
@@ -449,7 +488,7 @@ export const publishPodcast = async (
     'uploading-audio',
     'Publishing your Podcast file on QDN...'
   );
-  await publishAudioFile(ownerName, audioIdentifier, input.audioFile);
+  await publishAudioFile(ownerName, audioIdentifier, input.audioFile, options);
 
   if (input.thumbnailFile) {
     emitProgress(
@@ -458,20 +497,13 @@ export const publishPodcast = async (
       'Publishing thumbnail to QDN...'
     );
 
-    try {
-      await publishThumbnailFile(
-        ownerName,
-        thumbnailIdentifier,
-        input.thumbnailFile
-      );
-
-      publishedThumbnail = true;
-    } catch (error) {
-      console.warn(
-        '[podcast] thumbnail publish failed, continuing without thumbnail',
-        error
-      );
-    }
+    await publishThumbnailFile(
+      ownerName,
+      thumbnailIdentifier,
+      input.thumbnailFile,
+      options
+    );
+    publishedThumbnail = true;
   }
 
   const metadata: PodcastMetadata = {
@@ -513,59 +545,103 @@ export const publishPodcast = async (
     'verifying-metadata',
     'Verifying metadata availability on QDN...'
   );
-  await verifyMetadataPublication(ownerName, metadataIdentifier, episodeId);
-  emitProgress(options, 'completed', 'Publish completed.');
+  const verified = await verifyMetadataPublication(
+    ownerName,
+    metadataIdentifier,
+    metadata
+  );
+  options?.onVerification?.(verified);
+  emitProgress(
+    options,
+    'completed',
+    verified
+      ? 'Publish completed.'
+      : 'Publication submitted. QDN availability is pending; do not publish it again.'
+  );
 
   return buildEpisodeFromMetadata(ownerName, metadataIdentifier, metadata);
 };
 
-export const searchPodcasts = async (
+export const searchPodcastPage = async (
   input: SearchPodcastInput = {}
-): Promise<PodcastEpisode[]> => {
-  const { limit = 20, offset = 0, query } = input;
-
-  const searchResponse = await requestQortal<SearchQdnResourceResult[]>({
-    action: 'SEARCH_QDN_RESOURCES',
-    service: PODCAST_METADATA_SERVICE,
-    identifier: PODCAST_IDENTIFIER_PREFIX,
-    prefix: true,
-    mode: 'ALL',
-    reverse: true,
-    limit,
-    offset,
+): Promise<{
+  episodes: PodcastEpisode[];
+  hasMore: boolean;
+  failed: number;
+}> => {
+  const {
+    limit = 20,
+    offset = 0,
     query,
-  });
+    ownerName,
+    onEpisode,
+    onDeleted,
+  } = input;
 
-  if (!Array.isArray(searchResponse)) {
-    return [];
-  }
-
-  const results = await Promise.all(
-    searchResponse.map(async (item) => {
-      try {
-        const rawMetadata = await requestQortal<unknown>({
-          action: 'FETCH_QDN_RESOURCE',
-          service: PODCAST_METADATA_SERVICE,
-          name: item.name,
-          identifier: item.identifier,
-        });
-
-        const metadata = parsePodcastMetadata(rawMetadata);
-
-        if (!metadata || metadata.status === 'deleted') {
-          return null;
-        }
-
-        return buildEpisodeFromMetadata(item.name, item.identifier, metadata);
-      } catch {
-        return null;
-      }
-    })
+  const searchResponse = await requestQortal<SearchQdnResourceResult[]>(
+    {
+      action: 'SEARCH_QDN_RESOURCES',
+      service: PODCAST_METADATA_SERVICE,
+      identifier: PODCAST_IDENTIFIER_PREFIX,
+      prefix: true,
+      mode: 'ALL',
+      reverse: true,
+      limit,
+      offset,
+      query,
+      ...(ownerName ? { name: ownerName, exactMatchNames: true } : {}),
+    },
+    { cacheMs: 30_000 }
   );
 
-  return results
-    .filter((entry): entry is PodcastEpisode => entry !== null)
-    .sort((first, second) => second.updatedAt - first.updatedAt);
+  if (!Array.isArray(searchResponse))
+    throw new Error('Invalid QDN search response.');
+  let failed = 0;
+
+  const results = await mapConcurrent(searchResponse, 4, async (item) => {
+    try {
+      const rawMetadata = await readQdnDocument('episodes', item);
+
+      const metadata = parsePodcastMetadata(rawMetadata);
+
+      if (
+        !metadata ||
+        toMetadataIdentifier(metadata.episodeId) !== item.identifier
+      ) {
+        failed++;
+        return null;
+      }
+      if (metadata.status === 'deleted') {
+        onDeleted?.(
+          buildEpisodeFromMetadata(item.name, item.identifier, metadata)
+        );
+        return null;
+      }
+
+      const episode = buildEpisodeFromMetadata(
+        item.name,
+        item.identifier,
+        metadata
+      );
+      onEpisode?.(episode);
+      return episode;
+    } catch {
+      failed++;
+      return null;
+    }
+  });
+
+  return {
+    episodes: results
+      .filter((entry): entry is PodcastEpisode => entry !== null)
+      .sort((a, b) => b.updatedAt - a.updatedAt),
+    hasMore: searchResponse.length === limit,
+    failed,
+  };
+};
+
+export const searchPodcasts = async (input: SearchPodcastInput = {}) => {
+  return (await searchPodcastPage(input)).episodes;
 };
 
 export const getPodcastByOwnerAndEpisodeId = async (
@@ -640,7 +716,8 @@ export const updatePodcast = async (
     await publishAudioFile(
       episode.ownerName,
       episode.audio.identifier,
-      newAudioFile
+      newAudioFile,
+      options
     );
   }
 
@@ -656,16 +733,14 @@ export const updatePodcast = async (
         episode.ownerName,
         episode.thumbnail?.identifier ??
           toThumbnailIdentifier(episode.episodeId),
-        newThumbnailFile
+        newThumbnailFile,
+        options
       );
 
       publishedThumbnail = true;
     } catch (error) {
-      publishedThumbnail = false;
-      console.warn(
-        '[podcast] thumbnail update failed, continuing without thumbnail',
-        error
-      );
+      publishedThumbnail = Boolean(episode.thumbnail);
+      throw error;
     }
   }
 
@@ -677,7 +752,7 @@ export const updatePodcast = async (
     tags: normalizedTags,
     categories: normalizedCategories,
     createdAt: episode.createdAt,
-    updatedAt: Date.now(),
+    updatedAt: options?.operationTime ?? Date.now(),
     status: 'active',
     audio: {
       ...episode.audio,
@@ -712,12 +787,19 @@ export const updatePodcast = async (
     'verifying-metadata',
     'Verifying updated metadata on QDN...'
   );
-  await verifyMetadataPublication(
+  const verified = await verifyMetadataPublication(
     episode.ownerName,
     episode.metadataIdentifier,
-    episode.episodeId
+    updatedMetadata
   );
-  emitProgress(options, 'completed', 'Update completed.');
+  options?.onVerification?.(verified);
+  emitProgress(
+    options,
+    'completed',
+    verified
+      ? 'Update completed.'
+      : 'Update submitted; QDN verification is pending.'
+  );
   return buildEpisodeFromMetadata(
     episode.ownerName,
     episode.metadataIdentifier,
@@ -737,7 +819,7 @@ export const deletePodcast = async (
     tags: episode.tags,
     categories: episode.categories,
     createdAt: episode.createdAt,
-    updatedAt: Date.now(),
+    updatedAt: options?.operationTime ?? Date.now(),
     status: 'deleted',
     audio: episode.audio,
     thumbnail: episode.thumbnail,
@@ -759,24 +841,36 @@ export const deletePodcast = async (
     'verifying-metadata',
     'Verifying delete marker on QDN...'
   );
-  await verifyMetadataPublication(
+  const verified = await verifyMetadataPublication(
     episode.ownerName,
     episode.metadataIdentifier,
-    episode.episodeId
+    deletedMetadata
   );
-
-  emitProgress(options, 'completed', 'Episode marked as deleted.');
+  options?.onVerification?.(verified);
+  emitProgress(
+    options,
+    'completed',
+    verified
+      ? 'Episode marked as deleted.'
+      : 'Delete marker submitted; QDN verification is pending.'
+  );
 };
 
 export const getAudioResourceUrl = async (
   episode: PodcastEpisode
 ): Promise<string> => {
-  return requestQortal<string>({
-    action: 'GET_QDN_RESOURCE_URL',
-    service: episode.audio.service,
-    name: episode.audio.name,
-    identifier: episode.audio.identifier,
-  });
+  const url = await requestQortal<string>(
+    {
+      action: 'GET_QDN_RESOURCE_URL',
+      service: episode.audio.service,
+      name: episode.audio.name,
+      identifier: episode.audio.identifier,
+    },
+    { cacheMs: 300_000, priority: 'interactive' }
+  );
+  if (typeof url !== 'string' || !url)
+    throw new Error('QDN returned an invalid media URL.');
+  return `${url}${url.includes('?') ? '&' : '?'}v=${episode.updatedAt}`;
 };
 
 export const getThumbnailResourceUrl = async (
@@ -786,10 +880,16 @@ export const getThumbnailResourceUrl = async (
     return null;
   }
 
-  return requestQortal<string>({
-    action: 'GET_QDN_RESOURCE_URL',
-    service: episode.thumbnail.service,
-    name: episode.thumbnail.name,
-    identifier: episode.thumbnail.identifier,
-  });
+  const url = await requestQortal<string>(
+    {
+      action: 'GET_QDN_RESOURCE_URL',
+      service: episode.thumbnail.service,
+      name: episode.thumbnail.name,
+      identifier: episode.thumbnail.identifier,
+    },
+    { cacheMs: 300_000, priority: 'interactive' }
+  );
+  if (typeof url !== 'string' || !url)
+    throw new Error('QDN returned an invalid media URL.');
+  return `${url}${url.includes('?') ? '&' : '?'}v=${episode.updatedAt}`;
 };

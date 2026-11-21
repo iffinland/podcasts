@@ -66,4 +66,7 @@ export interface SearchPodcastInput {
   limit?: number;
   offset?: number;
   query?: string;
+  ownerName?: string;
+  onEpisode?: (episode: PodcastEpisode) => void;
+  onDeleted?: (episode: PodcastEpisode) => void;
 }

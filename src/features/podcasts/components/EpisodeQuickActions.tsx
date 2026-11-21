@@ -116,7 +116,12 @@ const EpisodeQuickActions = ({
           </span>
         ) : null}
       </div>
-      <button type="button" onClick={onEmbed} disabled={disableAll} title="Embed code">
+      <button
+        type="button"
+        onClick={onEmbed}
+        disabled={disableAll}
+        title="Embed code"
+      >
         {'</>'}
       </button>
       <button
@@ -127,11 +132,21 @@ const EpisodeQuickActions = ({
       >
         🗂
       </button>
-      <button type="button" onClick={onDownload} disabled={disableAll} title="Download">
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={disableAll}
+        title="Download"
+      >
         ⬇
       </button>
       {onEdit ? (
-        <button type="button" onClick={onEdit} disabled={disableAll} title="Edit">
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={disableAll}
+          title="Edit"
+        >
           ✏
         </button>
       ) : null}

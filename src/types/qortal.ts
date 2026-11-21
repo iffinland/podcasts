@@ -10,6 +10,7 @@ export interface WalletBalance {
 }
 
 export interface SendCoinInput {
+  senderKey?: string;
   recipient: string;
   amount: number;
   coin?: 'QORT';

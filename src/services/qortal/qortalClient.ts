@@ -1,131 +1,172 @@
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
-
-const REQUEST_TIMEOUT_MS = 120_000;
-interface QortalRequestOptions {
+declare const qortalRequest: (request: unknown) => Promise<unknown>;
+declare const qortalRequestWithTimeout:
+  | undefined
+  | ((request: unknown, timeout: number) => Promise<unknown>);
+/** Reserve bridge capacity for playback, account requests and writes. */
+export interface QortalRequestOptions {
   timeoutMs?: number;
+  priority?: 'interactive' | 'normal' | 'background';
+  cacheMs?: number;
+  cacheKey?: string;
 }
 
-const parseRequestError = (response: unknown): string | null => {
-  if (response === null || response === undefined) {
-    return 'Qortal request returned an empty response.';
-  }
+type Task = { run: () => void; background: boolean };
+const queue: Task[] = [];
+let active = 0;
+let backgroundActive = 0;
+const pending = new Map<string, Promise<unknown>>();
+const cache = new Map<string, { value: unknown; expires: number }>();
 
-  if (typeof response === 'string') {
-    const trimmed = response.trim();
-
-    if (trimmed.length === 0) {
-      return 'Qortal request returned an empty response.';
-    }
-
-    if (
-      trimmed.toLowerCase() === 'false' ||
-      trimmed.toLowerCase().startsWith('error')
-    ) {
-      return trimmed;
-    }
-
-    return null;
-  }
-
-  if (!isObject(response)) {
-    return null;
-  }
-
-  const error = response.error;
-  const message = response.message;
-  const success = response.success;
-
-  if (typeof error === 'string' && error.trim().length > 0) {
-    return error;
-  }
-
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return message;
-  }
-
-  if (error === true) {
-    return 'Qortal request failed.';
-  }
-
-  if (success === false) {
-    return 'Qortal request failed.';
-  }
-
-  return null;
-};
-
-export const isQortalRequestAvailable = () => {
-  return typeof qortalRequest === 'function';
-};
-
-export const requestQortal = async <TResponse>(
-  payload: Record<string, unknown>,
-  options?: QortalRequestOptions
-): Promise<TResponse> => {
-  if (!isQortalRequestAvailable()) {
-    throw new Error(
-      'Qortal request interface is not available in this environment.'
+const pump = () => {
+  while (active < 6) {
+    const index = queue.findIndex(
+      (task) => !task.background || backgroundActive < 2
     );
+    if (index < 0) return;
+    const [task] = queue.splice(index, 1);
+    active++;
+    if (task.background) backgroundActive++;
+    task.run();
   }
+};
 
-  const action =
-    typeof payload.action === 'string' ? payload.action : 'UNKNOWN_ACTION';
-  const service =
-    typeof payload.service === 'string' ? payload.service : undefined;
-  const identifier =
-    typeof payload.identifier === 'string' ? payload.identifier : undefined;
-  const startedAt = Date.now();
-  const label = [action, service, identifier].filter(Boolean).join(':');
-  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
-  let didTimeout = false;
+export const errorMessage = (value: unknown): string => {
+  if (value instanceof Error) return value.message;
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    const data = value as Record<string, unknown>;
+    if (typeof data.message === 'string') return data.message;
+    if (typeof data.error === 'string') return data.error;
+  }
+  return 'Qortal request failed.';
+};
 
-  console.info(`[qortal] request:start ${label}`);
+export const isQortalRequestAvailable = () =>
+  typeof qortalRequest === 'function';
+export const clearQortalCache = () => cache.clear();
 
-  const baseRequestPromise = Promise.resolve(qortalRequest(payload as never));
-  baseRequestPromise.catch((lateError) => {
-    if (!didTimeout) {
-      return;
-    }
-
-    console.warn(`[qortal] request:late-error ${label}`, lateError);
-  });
-
-  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutHandle = setTimeout(() => {
-      didTimeout = true;
-      reject(
-        new Error(
-          `Qortal request timed out after ${timeoutMs / 1000} seconds (${label}).`
-        )
-      );
-    }, timeoutMs);
-  });
-
+const invoke = async (payload: Record<string, unknown>, timeout: number) => {
+  // This is Core's bridge function, not merely an outer Promise.race timer.
+  const bridge =
+    typeof qortalRequestWithTimeout === 'function'
+      ? qortalRequestWithTimeout
+      : undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const response = (await Promise.race([
-      baseRequestPromise,
-      timeoutPromise,
-    ])) as unknown;
-    const errorMessage = parseRequestError(response);
-
-    if (errorMessage) {
-      throw new Error(errorMessage);
+    const request =
+      typeof bridge === 'function'
+        ? bridge(payload, timeout)
+        : qortalRequest(payload as never);
+    const response = await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                `${payload.action} timed out. Its outcome may still be pending; do not repeat a payment or publication without checking.`
+              )
+            ),
+          timeout
+        );
+      }),
+    ]);
+    if (response === null || response === undefined || response === false) {
+      throw new Error('Qortal request returned no successful result.');
     }
-
-    console.info(`[qortal] request:ok ${label} (${Date.now() - startedAt}ms)`);
-    return response as TResponse;
+    if (typeof response === 'object') {
+      const data = response as Record<string, unknown>;
+      if (
+        (data.error !== undefined &&
+          data.error !== null &&
+          data.error !== false &&
+          data.error !== 0) ||
+        data.success === false
+      ) {
+        throw new Error(errorMessage(data));
+      }
+    }
+    if (
+      typeof response === 'string' &&
+      /^(false|error\b)/i.test(response.trim())
+    )
+      throw new Error(response);
+    return response;
   } catch (error) {
-    console.error(
-      `[qortal] request:failed ${label} (${Date.now() - startedAt}ms)`,
-      error
-    );
-    throw error;
+    throw new Error(errorMessage(error));
   } finally {
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
+    clearTimeout(timer);
   }
+};
+
+export const requestQortal = <TResponse>(
+  payload: Record<string, unknown>,
+  options: QortalRequestOptions = {}
+): Promise<TResponse> => {
+  if (!isQortalRequestAvailable())
+    return Promise.reject(
+      new Error('Open this app in Qortal Hub or Qortal Go.')
+    );
+  const action = String(payload.action);
+  const writes = /^(PUBLISH_|SEND_|ADD_|DELETE_|JOIN_|SIGN_)/.test(action);
+  const asksPermission =
+    writes || /^(GET_USER_ACCOUNT|GET_LIST_ITEMS|GET_WALLET_)/.test(action);
+  const timeout =
+    options.timeoutMs ??
+    (writes
+      ? 3_600_000
+      : asksPermission
+        ? 300_000
+        : action === 'FETCH_QDN_RESOURCE'
+          ? 60_000
+          : 30_000);
+  const key = JSON.stringify(payload) + (options.cacheKey ?? '');
+  if (!writes) {
+    const hit = cache.get(key);
+    if (hit && hit.expires > Date.now())
+      return Promise.resolve(hit.value as TResponse);
+    const flight = pending.get(key);
+    if (flight) return flight as Promise<TResponse>;
+  }
+  const execute = () => invoke(payload, timeout);
+  const priority =
+    options.priority ??
+    (asksPermission || action === 'GET_QDN_RESOURCE_URL'
+      ? 'interactive'
+      : 'normal');
+  const promise =
+    priority === 'interactive'
+      ? execute()
+      : new Promise<unknown>((resolve, reject) => {
+          const background = priority === 'background';
+          const task = {
+            background,
+            run: () => {
+              void execute()
+                .then(resolve, reject)
+                .finally(() => {
+                  active--;
+                  if (background) backgroundActive--;
+                  pump();
+                });
+            },
+          };
+          if (background) queue.push(task);
+          else queue.unshift(task);
+          pump();
+        });
+  const result = promise
+    .then((value) => {
+      if (writes) clearQortalCache();
+      else if (options.cacheMs) {
+        if (cache.size > 500) cache.delete(cache.keys().next().value!);
+        cache.set(key, { value, expires: Date.now() + options.cacheMs });
+      }
+      return value;
+    })
+    .finally(() => {
+      if (pending.get(key) === result) pending.delete(key);
+    });
+  if (!writes) pending.set(key, result);
+  return result as Promise<TResponse>;
 };

@@ -1,69 +1,49 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { PodcastEpisode } from '../../../types/podcast';
+import type { PodcastEpisode } from '../../../types/podcast';
 import { toEpisodeKey } from './podcastKeys';
-
 interface UseOpenSharedEpisodeInput {
   episodes: PodcastEpisode[];
   onMatch: (episode: PodcastEpisode) => void;
-  resolveEpisodeByKey?: (episodeKey: string) => Promise<PodcastEpisode | null>;
+  resolveEpisodeByKey?: (key: string) => Promise<PodcastEpisode | null>;
 }
-
 export const useOpenSharedEpisode = ({
   episodes,
   onMatch,
   resolveEpisodeByKey,
 }: UseOpenSharedEpisodeInput) => {
   const location = useLocation();
-  const handledEpisodeKey = useRef<string | null>(null);
-  const attemptedEpisodeKeys = useRef<Set<string>>(new Set());
-
+  const latest = useRef(episodes);
+  latest.current = episodes;
+  const handled = useRef<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-
-    const openSharedEpisode = async () => {
-      const search = new URLSearchParams(location.search);
-      const queryKey = search.get('episode');
-      const pathMatch = location.pathname.match(/^\/e\/(.+)$/);
-      let pathKey: string | null = null;
-      if (pathMatch) {
-        try {
-          pathKey = decodeURIComponent(pathMatch[1]);
-        } catch {
-          pathKey = null;
+    let key = new URLSearchParams(location.search).get('episode');
+    const match = location.pathname.match(/^\/e\/(.+)$/);
+    if (match) {
+      try {
+        key = decodeURIComponent(match[1]);
+      } catch {
+        return;
+      }
+    }
+    if (!key || key === handled.current) return;
+    const requestedKey = key;
+    const known = latest.current.find(
+      (episode) => toEpisodeKey(episode) === requestedKey
+    );
+    void Promise.resolve(known ?? resolveEpisodeByKey?.(requestedKey))
+      .then((episode) => {
+        if (!cancelled && episode) {
+          handled.current = requestedKey;
+          onMatch(episode);
         }
-      }
-      const key = pathKey || queryKey;
-
-      if (!key || key === handledEpisodeKey.current) {
-        return;
-      }
-
-      let target: PodcastEpisode | null = (
-        episodes.find((episode) => toEpisodeKey(episode) === key) ?? null
-      );
-
-      if (
-        !target &&
-        resolveEpisodeByKey &&
-        !attemptedEpisodeKeys.current.has(key)
-      ) {
-        attemptedEpisodeKeys.current.add(key);
-        target = await resolveEpisodeByKey(key);
-      }
-
-      if (!target || cancelled) {
-        return;
-      }
-
-      handledEpisodeKey.current = key;
-      onMatch(target);
-    };
-
-    void openSharedEpisode();
-
+      })
+      .catch(() => {
+        /* The feed remains usable; opening the shared link again can retry. */
+      });
     return () => {
       cancelled = true;
     };
-  }, [episodes, location.pathname, location.search, onMatch, resolveEpisodeByKey]);
+  }, [location.pathname, location.search, onMatch, resolveEpisodeByKey]);
 };

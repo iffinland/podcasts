@@ -67,6 +67,7 @@ const EpisodeDetailsModal = ({
 
         <div className="episode-details-modal__layout">
           <EpisodeThumbnail
+            episode={episode}
             src={thumbnailUrl}
             alt={`${episode.title} thumbnail`}
             size="lg"

@@ -19,7 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["qapp-core/global"]
+    "types": ["vite/client"]
   },
   "include": ["vite.config.ts"]
 }

@@ -7,7 +7,10 @@ const escapeHtml = (value: string): string => {
     .replace(/'/g, '&#39;');
 };
 
-export const buildDownloadFilename = (title: string): string => {
+export const buildDownloadFilename = (
+  title: string,
+  originalFilename?: string
+): string => {
   const base = title
     .trim()
     .replace(/\s+/g, '_')
@@ -15,10 +18,20 @@ export const buildDownloadFilename = (title: string): string => {
     .slice(0, 80);
 
   if (!base) {
-    return 'podcast_episode.mp3';
+    return `podcast_episode.${
+      originalFilename
+        ?.split('.')
+        .pop()
+        ?.replace(/[^a-zA-Z0-9]/g, '') || 'mp3'
+    }`;
   }
 
-  return `${base}.mp3`;
+  return `${base}.${
+    originalFilename
+      ?.split('.')
+      .pop()
+      ?.replace(/[^a-zA-Z0-9]/g, '') || 'mp3'
+  }`;
 };
 
 export const buildHtmlAudioEmbedCode = (
@@ -26,7 +39,7 @@ export const buildHtmlAudioEmbedCode = (
   title: string,
   detailUrl: string
 ): string => {
-  const safeUrl = escapeHtml(audioUrl);
+  const safeUrl = escapeHtml(new URL(audioUrl, window.location.origin).href);
   const safeTitle = escapeHtml(title);
   const safeDetailUrl = escapeHtml(detailUrl);
   const downloadFilename = escapeHtml(buildDownloadFilename(title));

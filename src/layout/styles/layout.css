@@ -4,8 +4,10 @@
   --field-bg: #fff8ef;
   --border-soft: #cfb99b;
   --button-radius: 10px;
-  --button-shadow-rest: 0 2px 0 rgba(122, 92, 57, 0.4), 0 7px 14px rgba(50, 34, 12, 0.14);
-  --button-shadow-pressed: 0 1px 0 rgba(122, 92, 57, 0.4), 0 3px 8px rgba(50, 34, 12, 0.12);
+  --button-shadow-rest:
+    0 2px 0 rgba(122, 92, 57, 0.4), 0 7px 14px rgba(50, 34, 12, 0.14);
+  --button-shadow-pressed:
+    0 1px 0 rgba(122, 92, 57, 0.4), 0 3px 8px rgba(50, 34, 12, 0.12);
   --scrollbar-track: #efe1cd;
   --scrollbar-thumb: #c2a178;
   --scrollbar-thumb-hover: #ae8b59;
@@ -91,7 +93,11 @@ body {
   border-radius: var(--button-radius);
   box-shadow: var(--button-shadow-rest);
   transform: translateY(0);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .app-shell button:hover:not(:disabled) {

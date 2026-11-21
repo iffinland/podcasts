@@ -7,7 +7,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { createAvatarLink, useGlobal } from 'qapp-core';
+import { useRef } from 'react';
+import type { UserAccount } from '../../../types/qortal';
 import { requestQortal } from '../../../services/qortal/qortalClient';
 
 interface AccountNameResponse {
@@ -49,7 +50,33 @@ const normalizeNames = (value: unknown): string[] => {
 };
 
 export const IdentityProvider = ({ children }: { children: ReactNode }) => {
-  const { auth } = useGlobal();
+  const [auth, setAuth] = useState<
+    UserAccount & { isLoadingUser: boolean; avatarUrl?: string }
+  >({ address: '', publicKey: '', name: '', isLoadingUser: true });
+  const generation = useRef(0);
+  useEffect(() => {
+    let cancelled = false;
+    void requestQortal<UserAccount>({ action: 'GET_USER_ACCOUNT' })
+      .then(async (account) => {
+        let name = account.name ?? '';
+        try {
+          name = await requestQortal<string>({
+            action: 'GET_PRIMARY_NAME',
+            address: account.address,
+          });
+        } catch {
+          /* Names lookup below provides a fallback. */
+        }
+        if (!cancelled) setAuth({ ...account, name, isLoadingUser: false });
+      })
+      .catch(() => {
+        if (!cancelled)
+          setAuth((previous) => ({ ...previous, isLoadingUser: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [availableNames, setAvailableNames] = useState<string[]>([]);
   const [activeName, setActiveNameState] = useState<string | null>(null);
   const [isLoadingNames, setIsLoadingNames] = useState(false);
@@ -61,6 +88,7 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const requestId = ++generation.current;
     setIsLoadingNames(true);
 
     try {
@@ -69,6 +97,7 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
         address: auth.address,
       });
 
+      if (requestId !== generation.current) return;
       const names = normalizeNames(response);
       const merged = Array.from(
         new Set([...(auth.name ? [auth.name] : []), ...names])
@@ -87,11 +116,12 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
         return merged[0] ?? auth.name ?? null;
       });
     } catch {
+      if (requestId !== generation.current) return;
       const fallback = auth.name ? [auth.name] : [];
       setAvailableNames(fallback);
       setActiveNameState(auth.name ?? null);
     } finally {
-      setIsLoadingNames(false);
+      if (requestId === generation.current) setIsLoadingNames(false);
     }
   }, [auth.address, auth.name]);
 
@@ -104,7 +134,7 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setActiveNameState((current) => current ?? auth.name);
+    setActiveNameState((current) => current ?? auth.name ?? null);
     setAvailableNames((current) => {
       if (current.includes(auth.name as string)) {
         return current;
@@ -127,7 +157,7 @@ export const IdentityProvider = ({ children }: { children: ReactNode }) => {
 
   const avatarUrl = useMemo(() => {
     if (activeName) {
-      return createAvatarLink(activeName);
+      return `/arbitrary/THUMBNAIL/${encodeURIComponent(activeName)}/qortal_avatar?async=true`;
     }
 
     return auth?.avatarUrl ?? null;

@@ -1,0 +1,26 @@
+{
+  "version": "1.0.1-rc.3",
+  "runtime_approved_by_user": true,
+  "files": {
+    "assets/BrowseEpisodesPage-B14TAb_7.css": "e735df38eb0a9bc751c009a6154f2e5939cd5262b15bb3c29107c2e6829a27d4",
+    "assets/BrowseEpisodesPage-DZY7ZBBk.js": "07863a9622060a2352c01146f4db9706694182525487cef9e1dc8074ff5d4b0d",
+    "assets/EpisodeComposerModal-BL3EY8ZP.js": "5f83cac29e843b95f419363f81e621c02218bbacd97f28638ab9a76e679bd97d",
+    "assets/HomePage-Dt6K9wgB.js": "f3d8637b25e00319b151ae3ef3c9948931af6aaae993e4361b9d45ee33f06640",
+    "assets/HomePage-Dw9pAlWf.css": "c86d3ed1274d669f63431ea4ee072130862113319cf0ff8ad645a2e21d3eaf9e",
+    "assets/Inter-Bold-CBphcbpR.woff2": "42a1625fe725efda4ecf6e172816d2bd74088272ecee2b2a203d2bd5a22e85d2",
+    "assets/Inter-ExtraBold-Ck41BU4i.woff2": "0dbcb256db51a05b35183491e7d3d60d290ccdb95ec0db3b9be8a2a23837d20c",
+    "assets/Inter-Regular-BCBObkLV.woff2": "74f6c27d5b50293e6ed68a2d8d4157ddf324bac799da9831bd57bd73e8edd09f",
+    "assets/Inter-SemiBold-Cw_WG3Np.woff2": "fc445f03d62781ee6532b475dad3401c36293b618a5cd53b041e2eff3aad3a2e",
+    "assets/MyPublishedEpisodesPage-Cegiptf7.css": "1d2843dca4d344b94f7e46a053aea07d89a57456c35eea8b8d1cd4602703f051",
+    "assets/MyPublishedEpisodesPage-CoR_N6rO.js": "36b76b48ac2941416f3d0c9380d1287059f57f2259cfcd3d383e5e0dd75de494",
+    "assets/index-BQmy-1Ml.js": "f95e925f688fd4461e140613610373495b6d9a2dc214de7eac04ae5b1029673c",
+    "assets/index-BRyBNkpQ.css": "fb15a84cafda68c7094c15d2d2c01540bbd6312ad111b0bbd4adecce989ccd34",
+    "assets/publicationJobs-Cxk599Nv.js": "32be65bf63d1ff028508bc33317a15cb5a993beebdd41670b39aaa41ee46fa52",
+    "assets/shareAndClipboard-DioD3sXs.css": "385ed554e89371e539f96975978a352a2f0ce3940bfd962702cbc1ce6edea9df",
+    "assets/shareAndClipboard-GbLUaOoT.js": "d00bfe11bf56b70c9a8ad074354289d1765597eb53ac5141c6431ec56ef52a58",
+    "favicon.ico": "373b795f3c83aeefa9a365915ce3cdac9d09f232aecd75ef6eb7f117230e9ff8",
+    "index.html": "61044d652af0e780efffe343c1762adb2be96af86068d5a3b46aaba73a0622dd",
+    "podcast-logo-rounded-corner.png": "3842bfca8a6f0932108061c0c5436eb3b8c2615b1099b0d97715c38f6c9b981c",
+    "sw-video-decrypt.js": "019f481a15aeffe985f703beec6b5a00917b12c11d7073be3d201e226b4f3c9c"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "version": "1.0.1-rc.1",
+  "base_commit": "2158ee0989eaa75435ee4eab5ca3f242ae107fde",
+  "main_js": {
+    "file": "index-B408X9QJ.js",
+    "bytes": 434259,
+    "gzip_bytes": 140208,
+    "before_bytes": 1915864,
+    "before_gzip_bytes": 600205,
+    "reduction_percent": 77.33
+  },
+  "main_css": {
+    "file": "index-7hSFHT_Q.css",
+    "bytes": 12992,
+    "before_bytes": 59680,
+    "reduction_percent": 78.23
+  },
+  "fonts": {
+    "bytes": 426700,
+    "before_bytes": 1260240,
+    "reduction_percent": 66.14
+  },
+  "tests": {
+    "passed": 16,
+    "failed": 0,
+    "environment": "Node/jsdom with mocked Qortal bridge"
+  },
+  "lint": {
+    "errors": 0,
+    "existing_fast_refresh_warnings": 5
+  },
+  "live_qdn_tested": false
+}

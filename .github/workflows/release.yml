@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json, .github/workflows/release.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Resolve release version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install dependencies
+        if: steps.release.outputs.exists == 'false'
+        run: npm ci
+      - name: Validate source
+        if: steps.release.outputs.exists == 'false'
+        run: |
+          npm run lint
+          npm run format:check
+          npm test
+          npm run build
+      - name: Verify tested runtime and package assets
+        if: steps.release.outputs.exists == 'false'
+        run: python3 scripts/package-release.py
+      - name: Publish release and assets
+        if: steps.release.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          flags=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Q-Podcasts $RELEASE_VERSION" \
+            --notes-file "docs/releases/$RELEASE_VERSION.md" "${flags[@]}"

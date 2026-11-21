@@ -1,3 +1,4 @@
+import english from './locales/en/core.json';
 import i18n from 'i18next';
 import type { Module } from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -14,23 +15,24 @@ type LanguageNamespaceLoaders = Record<string, Record<string, LocaleLoader>>;
 const FALLBACK_LANGUAGE = 'en';
 const DEFAULT_NAMESPACE = 'core';
 
-const modules = import.meta.glob('./locales/**/*.json') as Record<
-  string,
-  LocaleLoader
->;
+const modules = import.meta.glob([
+  './locales/**/*.json',
+  '!./locales/en/core.json',
+]) as Record<string, LocaleLoader>;
 
 const languageNamespaceLoaders: LanguageNamespaceLoaders = {};
 
 // Dynamically detect unique language codes
 export const supportedLanguages: string[] = Array.from(
-  new Set(
-    Object.keys(modules)
+  new Set([
+    'en',
+    ...Object.keys(modules)
       .map((path) => {
         const match = path.match(/\.\/locales\/([^/]+)\//);
         return match ? match[1] : null;
       })
-      .filter((lang): lang is string => typeof lang === 'string')
-  )
+      .filter((lang): lang is string => typeof lang === 'string'),
+  ])
 );
 
 for (const path in modules) {
@@ -100,7 +102,7 @@ export const changeLanguageWithResources = async (
 };
 
 export const i18nReady = (async () => {
-  const initialLanguage = await loadLanguageResources(navigator.language);
+  const initialLanguage = 'en';
 
   await i18n
     .use(initReactI18next)
@@ -108,6 +110,7 @@ export const i18nReady = (async () => {
     .use(capitalizeFirstChar as Module)
     .use(capitalizeFirstWord as Module)
     .init({
+      resources: { en: { core: english } },
       fallbackLng: FALLBACK_LANGUAGE,
       lng: initialLanguage,
       supportedLngs: supportedLanguages,

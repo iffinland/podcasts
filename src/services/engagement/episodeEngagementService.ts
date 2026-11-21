@@ -1,9 +1,19 @@
+import {
+  cachedDocuments,
+  documentKey,
+  pruneDocuments,
+  readQdnDocument,
+  type QdnResource,
+} from '../cache/qdnDocumentCache';
+import { discoverResources } from '../qdn/resourceDiscovery';
+import { mapConcurrent } from '../qortal/mapConcurrent';
 import { requestQortal } from '../qortal/qortalClient';
 
 const FEEDBACK_SERVICE = 'PODCAST';
 const FEEDBACK_PREFIX = 'qpodcasts-feedback-';
 
-type FeedbackPayload = {
+export type FeedbackPayload = {
+  ownerName?: string;
   version: 1;
   episodeId: string;
   userName: string;
@@ -13,10 +23,7 @@ type FeedbackPayload = {
   updatedAt: number;
 };
 
-type SearchResult = {
-  name: string;
-  identifier: string;
-};
+type SearchResult = QdnResource;
 
 const encodeBase64Json = (value: unknown): string => {
   const json = JSON.stringify(value);
@@ -83,13 +90,22 @@ const parseFeedback = (raw: unknown): FeedbackPayload | null => {
     typeof like !== 'boolean' ||
     typeof tipCount !== 'number' ||
     typeof tipTotal !== 'number' ||
-    typeof updatedAt !== 'number'
+    typeof updatedAt !== 'number' ||
+    !Number.isFinite(tipCount) ||
+    tipCount < 0 ||
+    !Number.isInteger(tipCount) ||
+    !Number.isFinite(tipTotal) ||
+    tipTotal < 0 ||
+    !Number.isFinite(updatedAt)
   ) {
     return null;
   }
 
   return {
     version: 1,
+    ...(typeof normalized.ownerName === 'string'
+      ? { ownerName: normalized.ownerName }
+      : {}),
     episodeId,
     userName,
     like,
@@ -99,74 +115,161 @@ const parseFeedback = (raw: unknown): FeedbackPayload | null => {
   };
 };
 
-export const fetchAllFeedback = async (): Promise<FeedbackPayload[]> => {
-  const search = await requestQortal<SearchResult[]>({
-    action: 'SEARCH_QDN_RESOURCES',
-    service: FEEDBACK_SERVICE,
-    identifier: FEEDBACK_PREFIX,
-    prefix: true,
-    mode: 'ALL',
-    reverse: true,
-    limit: 1000,
-    offset: 0,
-  });
-
-  if (!Array.isArray(search)) {
-    return [];
+export type FeedbackSyncProgress = {
+  discovered: number;
+  processed: number;
+  failed: number;
+  ignored: number;
+  discovering: boolean;
+  cached: boolean;
+};
+const trustedFeedback = (raw: unknown, resource: QdnResource) => {
+  const feedback = parseFeedback(raw);
+  if (
+    !feedback ||
+    feedback.userName.toLowerCase() !== resource.name.toLowerCase()
+  )
+    return null;
+  if (
+    ![
+      feedbackIdentifier(feedback.episodeId),
+      legacyFeedbackIdentifier(feedback.episodeId, resource.name),
+    ].includes(resource.identifier)
+  )
+    return null;
+  return feedback;
+};
+export const fetchAllFeedback = async (
+  onBatch?: (feedback: FeedbackPayload[]) => void,
+  onProgress?: (progress: FeedbackSyncProgress) => void
+): Promise<FeedbackPayload[]> => {
+  const progress: FeedbackSyncProgress = {
+    discovered: 0,
+    processed: 0,
+    failed: 0,
+    ignored: 0,
+    discovering: true,
+    cached: false,
+  };
+  const cached = await cachedDocuments('feedback');
+  const fallback = new Map(cached.map((entry) => [entry.key, entry]));
+  const latest = new Map<
+    string,
+    { feedback: FeedbackPayload; revision: number; canonical: boolean }
+  >();
+  const accept = (feedback: FeedbackPayload, resource: QdnResource) => {
+    const key = `${feedback.userName.toLowerCase()}::${feedback.episodeId}`;
+    const revision = resource.updated ?? resource.created ?? feedback.updatedAt;
+    const canonical =
+      resource.identifier === feedbackIdentifier(feedback.episodeId);
+    const previous = latest.get(key);
+    if (
+      !previous ||
+      revision > previous.revision ||
+      (revision === previous.revision && canonical)
+    )
+      latest.set(key, { feedback, revision, canonical });
+  };
+  for (const entry of cached) {
+    const feedback = trustedFeedback(entry.value, entry.resource);
+    if (feedback) accept(feedback, entry.resource);
   }
-
-  const feedbacks = await Promise.all(
-    search.map(async (item) => {
-      try {
-        const resource = await requestQortal<unknown>({
-          action: 'FETCH_QDN_RESOURCE',
-          service: FEEDBACK_SERVICE,
-          name: item.name,
-          identifier: item.identifier,
-        });
-
-        return parseFeedback(resource);
-      } catch {
-        return null;
-      }
-    })
+  if (latest.size) {
+    progress.cached = true;
+    onBatch?.([...latest.values()].map((item) => item.feedback));
+  }
+  onProgress?.({ ...progress });
+  const resources = await discoverResources(FEEDBACK_PREFIX, (items) => {
+    progress.discovered = items.length;
+    onProgress?.({ ...progress });
+  });
+  // Cached entries absent from a complete resource index must not live forever.
+  latest.clear();
+  progress.discovering = false;
+  onProgress?.({ ...progress });
+  await mapConcurrent(resources, 2, async (resource) => {
+    try {
+      const raw = await readQdnDocument('feedback', resource, {
+        priority: 'background',
+      });
+      const feedback = trustedFeedback(raw, resource);
+      if (feedback) accept(feedback, resource);
+      else progress.ignored++;
+    } catch {
+      progress.failed++;
+      const previous = fallback.get(documentKey('feedback', resource));
+      const feedback =
+        previous && trustedFeedback(previous.value, previous.resource);
+      if (feedback) accept(feedback, previous!.resource);
+    }
+    progress.processed++;
+    if (
+      progress.processed % 20 === 0 ||
+      progress.processed === resources.length
+    ) {
+      onBatch?.([...latest.values()].map((item) => item.feedback));
+      onProgress?.({ ...progress });
+    }
+  });
+  await pruneDocuments(
+    'feedback',
+    new Set(resources.map((resource) => documentKey('feedback', resource)))
   );
-
-  return feedbacks.filter((item): item is FeedbackPayload => item !== null);
+  const result = [...latest.values()].map((item) => item.feedback);
+  onBatch?.(result);
+  onProgress?.({ ...progress, cached: progress.failed > 0 && progress.cached });
+  return result;
 };
 
 export const fetchUserFeedback = async (
   userName: string,
   episodeId: string
 ): Promise<FeedbackPayload | null> => {
-  try {
-    const resource = await requestQortal<unknown>({
-      action: 'FETCH_QDN_RESOURCE',
+  const search = await requestQortal<SearchResult[]>(
+    {
+      action: 'SEARCH_QDN_RESOURCES',
       service: FEEDBACK_SERVICE,
       name: userName,
+      exactMatchNames: true,
       identifier: feedbackIdentifier(episodeId),
-    });
-
-    const parsed = parseFeedback(resource);
-    if (parsed) {
+      prefix: true,
+      mode: 'ALL',
+      limit: 20,
+    },
+    { priority: 'interactive' }
+  );
+  if (!Array.isArray(search))
+    throw new Error('Could not check existing feedback.');
+  const matches = search.filter(
+    (item) =>
+      item.name.toLowerCase() === userName.toLowerCase() &&
+      [
+        feedbackIdentifier(episodeId),
+        legacyFeedbackIdentifier(episodeId, userName),
+      ].includes(item.identifier)
+  );
+  const feedback = await Promise.all(
+    matches.map(async (item) => {
+      const raw = await requestQortal<unknown>(
+        {
+          action: 'FETCH_QDN_RESOURCE',
+          service: FEEDBACK_SERVICE,
+          name: userName,
+          identifier: item.identifier,
+        },
+        { priority: 'interactive' }
+      );
+      const parsed = parseFeedback(raw);
+      if (
+        !parsed ||
+        parsed.episodeId !== episodeId ||
+        parsed.userName.toLowerCase() !== userName.toLowerCase()
+      )
+        throw new Error('Invalid feedback data.');
       return parsed;
-    }
-  } catch {
-    // Fallback to legacy identifier below.
-  }
-
-  try {
-    const legacyResource = await requestQortal<unknown>({
-      action: 'FETCH_QDN_RESOURCE',
-      service: FEEDBACK_SERVICE,
-      name: userName,
-      identifier: legacyFeedbackIdentifier(episodeId, userName),
-    });
-
-    return parseFeedback(legacyResource);
-  } catch {
-    return null;
-  }
+    })
+  );
+  return feedback.sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
 };
 
 export const upsertFeedback = async (
@@ -176,10 +279,12 @@ export const upsertFeedback = async (
     like: boolean;
     tipCount: number;
     tipTotal: number;
+    ownerName?: string;
   }
 ): Promise<FeedbackPayload> => {
   const payload: FeedbackPayload = {
     version: 1,
+    ownerName: next.ownerName,
     episodeId,
     userName,
     like: next.like,

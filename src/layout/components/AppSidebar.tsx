@@ -1,3 +1,10 @@
+import CatalogStatus from '../../features/podcasts/components/CatalogStatus';
+import StatisticsStatus from '../../features/podcasts/components/StatisticsStatus';
+import {
+  ensureCompleteCatalog,
+  usePodcastCrud,
+} from '../../features/podcasts/hooks/usePodcastCrud';
+import { useEpisodeEngagement } from '../../features/podcasts/hooks/useEpisodeEngagement';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEpisodeComposer } from '../../features/podcasts/context/EpisodeComposerContext';
@@ -11,6 +18,8 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ side }: AppSidebarProps) => {
+  const { catalogComplete } = usePodcastCrud('', false);
+  const { isComplete } = useEpisodeEngagement(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isBrowsePage = location.pathname === '/episodes';
@@ -64,9 +73,7 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         <button
           type="button"
           className={`app-sidebar__primary-action${isBrowsePage ? ' is-home-return' : ''}`}
-          onClick={() =>
-            void navigate(isBrowsePage ? '/' : '/episodes')
-          }
+          onClick={() => void navigate(isBrowsePage ? '/' : '/episodes')}
         >
           {isBrowsePage ? 'Back to Home' : 'Browse all Episodes'}
         </button>
@@ -87,18 +94,20 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
         <button
           type="button"
           className={`app-sidebar__primary-action${isMyEpisodesPage ? ' is-home-return' : ''}`}
-          onClick={() =>
-            void navigate(isMyEpisodesPage ? '/' : '/my-episodes')
-          }
+          onClick={() => void navigate(isMyEpisodesPage ? '/' : '/my-episodes')}
         >
           {isMyEpisodesPage ? 'Back to Home' : 'My Published Episodes'}
         </button>
+        <CatalogStatus />
         <h2>Top 6 Category</h2>
         <div className="app-sidebar__filter-actions">
           <button
             type="button"
             className="app-sidebar__tag-reset"
-            onClick={() => setIsAllCategoriesModalOpen(true)}
+            onClick={() => {
+              void ensureCompleteCatalog();
+              setIsAllCategoriesModalOpen(true);
+            }}
           >
             All Categories
           </button>
@@ -134,7 +143,10 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
           <button
             type="button"
             className="app-sidebar__tag-reset"
-            onClick={() => setIsAllTagsModalOpen(true)}
+            onClick={() => {
+              void ensureCompleteCatalog();
+              setIsAllTagsModalOpen(true);
+            }}
           >
             All Tags
           </button>
@@ -186,6 +198,7 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
                   Close
                 </button>
               </div>
+              <CatalogStatus />
               {allCategories.length === 0 ? <p>No categories yet.</p> : null}
               <div className="app-sidebar__all-tags-cloud">
                 {allCategories.map((category) => {
@@ -225,6 +238,7 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
                   Close
                 </button>
               </div>
+              <CatalogStatus />
               {allTags.length === 0 ? <p>No tags yet.</p> : null}
               <div className="app-sidebar__all-tags-cloud">
                 {allTags.map((item) => {
@@ -255,7 +269,20 @@ const AppSidebar = ({ side }: AppSidebarProps) => {
   return (
     <div className="app-sidebar__content">
       <h2>Likes & Tips</h2>
-      {topEpisodes.length === 0 ? <p>No ranked episodes yet.</p> : null}
+      <StatisticsStatus />
+      {!catalogComplete && (
+        <p>
+          Rankings currently cover indexed episodes. The catalog check is
+          incomplete.
+        </p>
+      )}
+      {topEpisodes.length === 0 && (
+        <p>
+          {catalogComplete && isComplete
+            ? 'No ranked episodes yet.'
+            : 'No ranked episodes among the results checked so far.'}
+        </p>
+      )}
       <div className="app-sidebar__ranking">
         {topEpisodes.map((item) => (
           <article

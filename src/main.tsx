@@ -5,12 +5,14 @@ import './index.css';
 import { i18nReady } from './i18n/i18n';
 import App from './App.tsx';
 
-void i18nReady.finally(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <ThemeProviderWrapper>
-        <App />
-      </ThemeProviderWrapper>
-    </StrictMode>
-  );
-});
+void i18nReady
+  .catch(() => undefined)
+  .finally(() => {
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <ThemeProviderWrapper>
+          <App />
+        </ThemeProviderWrapper>
+      </StrictMode>
+    );
+  });

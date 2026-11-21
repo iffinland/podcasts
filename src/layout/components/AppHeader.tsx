@@ -57,7 +57,9 @@ const AppHeader = () => {
       window.alert('Chat group join request submitted.');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Could not join the chat group.';
+        error instanceof Error
+          ? error.message
+          : 'Could not join the chat group.';
       window.alert(message);
     } finally {
       setIsJoiningChat(false);

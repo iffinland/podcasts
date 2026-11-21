@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIdentity } from '../../identity/context/IdentityContext';
 import EmbedCodeModal from '../components/EmbedCodeModal';
-import EpisodeComposerModal from '../components/EpisodeComposerModal';
 import EpisodeDetailsModal from '../components/EpisodeDetailsModal';
 import EpisodeQuickActions from '../components/EpisodeQuickActions';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
@@ -32,15 +31,17 @@ const MyPublishedEpisodesPage = () => {
   const composer = useEpisodeComposer();
   const social = usePodcastSocial(activeName);
   const engagement = useEpisodeEngagement(activeName);
-  const { playEpisode, currentEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
-    useGlobalPlayback();
-  const podcastCrud = usePodcastCrud();
-  const [thumbnailUrls, setThumbnailUrls] = useState<
-    Record<string, string | null>
-  >({});
-  const [editingEpisode, setEditingEpisode] = useState<PodcastEpisode | null>(
-    null
-  );
+  const { mapLikesSetByKey } = engagement;
+  const {
+    playEpisode,
+    currentEpisode,
+    isCurrentEpisode,
+    isPlaying,
+    isPlayerOpen,
+  } = useGlobalPlayback();
+  const podcastCrud = usePodcastCrud(activeName ?? '', Boolean(activeName));
+  const { resolveAudioUrl } = podcastCrud;
+  const thumbnailUrls: Record<string, string | null> = {};
   const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
     null
   );
@@ -58,52 +59,6 @@ const MyPublishedEpisodesPage = () => {
       (episode) => episode.ownerName === activeName
     );
   }, [activeName, podcastCrud.episodes]);
-
-  useEffect(() => {
-    const missing = myEpisodes.filter((episode) => {
-      const key = toEpisodeKey(episode);
-      return !(key in thumbnailUrls);
-    });
-
-    if (missing.length === 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    void Promise.all(
-      missing.map(async (episode) => {
-        const key = toEpisodeKey(episode);
-
-        if (!episode.thumbnail) {
-          return { key, url: null };
-        }
-
-        try {
-          const url = await podcastCrud.resolveThumbnailUrl(episode);
-          return { key, url };
-        } catch {
-          return { key, url: null };
-        }
-      })
-    ).then((results) => {
-      if (cancelled) {
-        return;
-      }
-
-      setThumbnailUrls((previous) => {
-        const next = { ...previous };
-        results.forEach(({ key, url }) => {
-          next[key] = url;
-        });
-        return next;
-      });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [myEpisodes, podcastCrud, thumbnailUrls]);
 
   const handlePlay = (episode: PodcastEpisode) => {
     void playEpisode(episode);
@@ -137,9 +92,18 @@ const MyPublishedEpisodesPage = () => {
   };
 
   const handleDownload = (episode: PodcastEpisode) => {
-    void podcastCrud.resolveAudioUrl(episode).then((audioUrl) => {
-      triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
-    });
+    void resolveAudioUrl(episode)
+      .then((audioUrl) => {
+        triggerFileDownload(
+          audioUrl,
+          buildDownloadFilename(episode.title, episode.audio.filename)
+        );
+      })
+      .catch((error) =>
+        window.alert(
+          error instanceof Error ? error.message : 'Download failed.'
+        )
+      );
   };
 
   const handleDelete = async (episode: PodcastEpisode) => {
@@ -148,7 +112,11 @@ const MyPublishedEpisodesPage = () => {
       return;
     }
 
-    await podcastCrud.removeEpisode(episode);
+    try {
+      await podcastCrud.removeEpisode(episode);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Delete failed.');
+    }
   };
 
   const handleOpenSharedEpisode = useCallback(
@@ -170,8 +138,7 @@ const MyPublishedEpisodesPage = () => {
     setIsHtmlEmbedLoading(true);
     setHtmlEmbedCode('');
 
-    void podcastCrud
-      .resolveAudioUrl(embedEpisode)
+    void resolveAudioUrl(embedEpisode)
       .then((audioUrl) => {
         if (cancelled) {
           return;
@@ -200,11 +167,11 @@ const MyPublishedEpisodesPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [embedEpisode, podcastCrud.resolveAudioUrl]);
+  }, [embedEpisode, resolveAudioUrl]);
 
   const likedByEpisodeKey = useMemo(() => {
-    return engagement.mapLikesSetByKey(myEpisodes);
-  }, [engagement.mapLikesSetByKey, myEpisodes]);
+    return mapLikesSetByKey(myEpisodes);
+  }, [mapLikesSetByKey, myEpisodes]);
   const episodeIndex = useMemo(() => {
     return podcastCrud.episodes.reduce<Record<string, PodcastEpisode>>(
       (accumulator, episode) => {
@@ -217,13 +184,14 @@ const MyPublishedEpisodesPage = () => {
 
   useOpenSharedEpisode({
     episodes: podcastCrud.episodes,
-    onMatch: handleOpenSharedEpisode,
     resolveEpisodeByKey: podcastCrud.findEpisodeByKey,
+    onMatch: handleOpenSharedEpisode,
   });
 
   return (
     <>
       <SendTipModal
+        senderKey={activeName ?? undefined}
         isOpen={Boolean(tipEpisode)}
         publisherName={tipEpisode?.ownerName ?? null}
         onSent={async (amount) => {
@@ -266,7 +234,9 @@ const MyPublishedEpisodesPage = () => {
             : null
         }
         isLiked={
-          detailsEpisode ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode)) : false
+          detailsEpisode
+            ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode))
+            : false
         }
         disableEngagement={!activeName}
         disableAll={podcastCrud.isSaving}
@@ -277,26 +247,6 @@ const MyPublishedEpisodesPage = () => {
         onAddToPlaylist={(episode) => composer.openPlaylists(episode)}
         onDownload={handleDownload}
         onClose={() => setDetailsEpisode(null)}
-      />
-      <EpisodeComposerModal
-        isOpen={Boolean(editingEpisode)}
-        mode="edit"
-        activeName={activeName}
-        editingEpisode={editingEpisode}
-        isSaving={podcastCrud.isSaving}
-        errorMessage={podcastCrud.error}
-        saveProgress={podcastCrud.saveProgress}
-        onClose={() => setEditingEpisode(null)}
-        onCreate={async () => {}}
-        onEdit={async (payload) => {
-          const updated = await podcastCrud.editEpisode(payload);
-          setThumbnailUrls((previous) => {
-            const next = { ...previous };
-            delete next[toEpisodeKey(updated)];
-            return next;
-          });
-          setEditingEpisode(null);
-        }}
       />
 
       <section className="surface my-episodes">
@@ -317,6 +267,22 @@ const MyPublishedEpisodesPage = () => {
           <p>No published episodes yet.</p>
         ) : null}
 
+        <button
+          type="button"
+          disabled={podcastCrud.isLoading}
+          onClick={() => void podcastCrud.loadEpisodes()}
+        >
+          Refresh
+        </button>
+        {podcastCrud.hasMore && (
+          <button
+            type="button"
+            disabled={podcastCrud.isLoading}
+            onClick={() => void podcastCrud.loadMore()}
+          >
+            Load more episodes
+          </button>
+        )}
         <div className="my-episodes__list">
           {myEpisodes.map((episode) => {
             const key = toEpisodeKey(episode);
@@ -324,6 +290,7 @@ const MyPublishedEpisodesPage = () => {
             return (
               <article key={key} className="my-episodes__item">
                 <EpisodeThumbnail
+                  episode={episode}
                   src={thumbnailUrls[key] ?? null}
                   alt={`${episode.title} thumbnail`}
                   size="sm"
@@ -344,7 +311,7 @@ const MyPublishedEpisodesPage = () => {
                       onEmbed={() => handleEmbed(episode)}
                       onAddToPlaylist={() => composer.openPlaylists(episode)}
                       onDownload={() => handleDownload(episode)}
-                      onEdit={() => setEditingEpisode(episode)}
+                      onEdit={() => composer.openEdit(episode)}
                       onDelete={() => void handleDelete(episode)}
                       disableEngagement={!activeName}
                       disableAll={podcastCrud.isSaving}

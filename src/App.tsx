@@ -22,11 +22,17 @@ const router = createBrowserRouter(
     {
       path: '/',
       element: <AppWrapper />,
+      errorElement: (
+        <section role="alert">
+          <p>This page could not be loaded.</p>
+          <button onClick={() => window.location.reload()}>Reload app</button>
+        </section>
+      ),
       children: [
         {
           index: true,
           element: (
-            <Suspense fallback={null}>
+            <Suspense fallback={<p role="status">Loading page...</p>}>
               <HomePage />
             </Suspense>
           ),
@@ -34,7 +40,7 @@ const router = createBrowserRouter(
         {
           path: 'episodes',
           element: (
-            <Suspense fallback={null}>
+            <Suspense fallback={<p role="status">Loading page...</p>}>
               <BrowseEpisodesPage />
             </Suspense>
           ),
@@ -42,7 +48,7 @@ const router = createBrowserRouter(
         {
           path: 'my-episodes',
           element: (
-            <Suspense fallback={null}>
+            <Suspense fallback={<p role="status">Loading page...</p>}>
               <MyPublishedEpisodesPage />
             </Suspense>
           ),
@@ -50,7 +56,7 @@ const router = createBrowserRouter(
         {
           path: 'e/:episodeKey',
           element: (
-            <Suspense fallback={null}>
+            <Suspense fallback={<p role="status">Loading page...</p>}>
               <HomePage />
             </Suspense>
           ),

@@ -1,46 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEpisodeComposer } from '../context/EpisodeComposerContext';
+import { mapConcurrent } from '../../../services/qortal/mapConcurrent';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   addEpisodeToPlaylist,
-  addLike,
   createPlaylist,
-  loadLikedEpisodeKeys,
   loadPlaylistEpisodeKeys,
   loadPlaylistNames,
   removeEpisodeFromPlaylist,
-  removeLike,
 } from '../../../services/social/podcastSocialService';
 
 export type PlaylistMap = Record<string, string[]>;
 
 export const usePodcastSocial = (activeName: string | null) => {
-  const [likedKeys, setLikedKeys] = useState<string[]>([]);
+  const { isPlaylistOpen } = useEpisodeComposer();
+  const generation = useRef(0);
+  const currentName = useRef(activeName);
+  currentName.current = activeName;
   const [playlists, setPlaylists] = useState<PlaylistMap>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const likedSet = useMemo(() => new Set(likedKeys), [likedKeys]);
-
   const reload = useCallback(async () => {
     if (!activeName) {
-      setLikedKeys([]);
       setPlaylists({});
       return;
     }
 
+    const requestId = ++generation.current;
     setIsLoading(true);
     setError(null);
 
     try {
-      const [likes, playlistNames] = await Promise.all([
-        loadLikedEpisodeKeys(activeName),
-        loadPlaylistNames(activeName),
-      ]);
+      const playlistNames = await loadPlaylistNames(activeName);
 
-      const playlistItems = await Promise.all(
-        playlistNames.map(async (name) => {
+      const playlistItems = await mapConcurrent(
+        playlistNames,
+        2,
+        async (name) => {
           const items = await loadPlaylistEpisodeKeys(activeName, name);
           return [name, items] as const;
-        })
+        }
       );
 
       const nextMap: PlaylistMap = {};
@@ -48,65 +47,48 @@ export const usePodcastSocial = (activeName: string | null) => {
         nextMap[name] = items;
       });
 
-      setLikedKeys(likes);
-      setPlaylists(nextMap);
+      if (requestId === generation.current) setPlaylists(nextMap);
     } catch (loadError) {
       const message =
         loadError instanceof Error
           ? loadError.message
           : 'Could not load likes or playlists.';
-      setError(message);
+      if (requestId === generation.current) setError(message);
     } finally {
-      setIsLoading(false);
+      if (requestId === generation.current) setIsLoading(false);
     }
   }, [activeName]);
 
+  const invalidate = useCallback(() => {
+    ++generation.current;
+  }, []);
   useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  const toggleLike = useCallback(
-    async (episodeKey: string) => {
-      if (!activeName) {
-        return;
-      }
-
-      const alreadyLiked = likedSet.has(episodeKey);
-
-      try {
-        if (alreadyLiked) {
-          await removeLike(activeName, episodeKey);
-          setLikedKeys((previous) =>
-            previous.filter((key) => key !== episodeKey)
-          );
-          return;
-        }
-
-        await addLike(activeName, episodeKey);
-        setLikedKeys((previous) =>
-          Array.from(new Set([...previous, episodeKey]))
-        );
-      } catch (likeError) {
-        const message =
-          likeError instanceof Error
-            ? likeError.message
-            : 'Could not update like.';
-        setError(message);
-      }
-    },
-    [activeName, likedSet]
-  );
+    invalidate();
+    setPlaylists({});
+    setError(null);
+    if (isPlaylistOpen) void reload();
+    return invalidate;
+  }, [reload, isPlaylistOpen, invalidate]);
 
   const createNewPlaylist = useCallback(
     async (playlistName: string) => {
-      if (!activeName || !playlistName.trim()) {
-        return;
-      }
+      if (!activeName || !playlistName.trim())
+        throw new Error('Select an account and enter a playlist name.');
 
       const normalized = playlistName.trim();
+      const listKey = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+      if (
+        Object.keys(playlists).some(
+          (name) => name !== normalized && listKey(name) === listKey(normalized)
+        )
+      )
+        throw new Error(
+          'This name conflicts with an existing playlist. Choose a distinct name.'
+        );
 
       try {
         await createPlaylist(activeName, normalized);
+        if (currentName.current !== activeName) return;
         setPlaylists((previous) => {
           if (previous[normalized]) {
             return previous;
@@ -123,9 +105,10 @@ export const usePodcastSocial = (activeName: string | null) => {
             ? playlistError.message
             : 'Could not create playlist.';
         setError(message);
+        throw playlistError;
       }
     },
-    [activeName]
+    [activeName, playlists]
   );
 
   const addEpisode = useCallback(
@@ -136,6 +119,7 @@ export const usePodcastSocial = (activeName: string | null) => {
 
       try {
         await addEpisodeToPlaylist(activeName, playlistName, episodeKey);
+        if (currentName.current !== activeName) return;
         setPlaylists((previous) => {
           const existing = previous[playlistName] ?? [];
 
@@ -150,6 +134,7 @@ export const usePodcastSocial = (activeName: string | null) => {
             ? playlistError.message
             : 'Could not add episode to playlist.';
         setError(message);
+        throw playlistError;
       }
     },
     [activeName]
@@ -163,6 +148,7 @@ export const usePodcastSocial = (activeName: string | null) => {
 
       try {
         await removeEpisodeFromPlaylist(activeName, playlistName, episodeKey);
+        if (currentName.current !== activeName) return;
         setPlaylists((previous) => ({
           ...previous,
           [playlistName]: (previous[playlistName] ?? []).filter(
@@ -175,18 +161,17 @@ export const usePodcastSocial = (activeName: string | null) => {
             ? playlistError.message
             : 'Could not remove episode from playlist.';
         setError(message);
+        throw playlistError;
       }
     },
     [activeName]
   );
 
   return {
-    likedSet,
     playlists,
     isLoading,
     error,
     reload,
-    toggleLike,
     createNewPlaylist,
     addEpisode,
     removeEpisode,

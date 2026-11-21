@@ -11,6 +11,8 @@ import '../styles/episode-thumbnail.css';
 
 interface RecentEpisodesPanelProps {
   episodes: PodcastEpisode[];
+  isLoading?: boolean;
+  isIncomplete?: boolean;
   selectedCategory: string | null;
   selectedTags: string[];
   thumbnailUrls: Record<string, string | null>;
@@ -28,6 +30,8 @@ interface RecentEpisodesPanelProps {
 
 const RecentEpisodesPanel = ({
   episodes,
+  isLoading,
+  isIncomplete,
   selectedCategory,
   selectedTags,
   thumbnailUrls,
@@ -58,11 +62,14 @@ const RecentEpisodesPanel = ({
       <h3>
         {filterSuffix ? `Latest 20: ${filterSuffix}` : 'Latest 20 Episodes'}
       </h3>
-      {latest.length === 0 ? (
+      {isLoading && <p role="status">Loading episodes...</p>}
+      {!isLoading && latest.length === 0 ? (
         <p>
-          {filterSuffix
-            ? `No episodes for ${filterSuffix}.`
-            : 'No fresh episodes yet.'}
+          {isIncomplete
+            ? 'No matches among the episodes checked so far. The catalog check is incomplete.'
+            : filterSuffix
+              ? `No episodes for ${filterSuffix}.`
+              : 'No fresh episodes yet.'}
         </p>
       ) : null}
 
@@ -74,7 +81,8 @@ const RecentEpisodesPanel = ({
           >
             {(() => {
               const key = toEpisodeKey(episode);
-              const isPlayingCurrent = isPlayerOpen && isCurrentEpisode(episode);
+              const isPlayingCurrent =
+                isPlayerOpen && isCurrentEpisode(episode);
               const isPlayingState = isPlayingCurrent && isPlaying;
               const isLiked = likedByEpisodeKey.has(key);
 
@@ -82,6 +90,7 @@ const RecentEpisodesPanel = ({
                 <>
                   <div className="recent-episodes__meta">
                     <EpisodeThumbnail
+                      episode={episode}
                       src={thumbnailUrls[key] ?? null}
                       alt={`${episode.title} thumbnail`}
                       size="sm"
@@ -108,7 +117,9 @@ const RecentEpisodesPanel = ({
                         disableEngagement={disableEngagement}
                       />
                       {isPlayingCurrent ? (
-                        <small>{isPlayingState ? 'Playing now' : 'Paused'}</small>
+                        <small>
+                          {isPlayingState ? 'Playing now' : 'Paused'}
+                        </small>
                       ) : null}
                     </div>
                   </div>

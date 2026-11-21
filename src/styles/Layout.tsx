@@ -1,3 +1,7 @@
+import PublicationRecoveryPanel from '../features/podcasts/components/PublicationRecoveryPanel';
+import CommunityIndexSync from '../features/podcasts/components/CommunityIndexSync';
+import { version } from '../../package.json';
+import ComposerHost from '../features/podcasts/components/ComposerHost';
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useIframe } from '../hooks/useIframeListener';
@@ -12,8 +16,8 @@ import '../layout/styles/layout.css';
 
 const Layout = () => {
   useIframe();
-  const [isMobileLayout, setIsMobileLayout] = useState(() =>
-    window.matchMedia('(max-width: 1024px)').matches
+  const [isMobileLayout, setIsMobileLayout] = useState(
+    () => window.matchMedia('(max-width: 1024px)').matches
   );
   const [openMobilePanel, setOpenMobilePanel] = useState<'left' | 'right'>(
     'left'
@@ -41,6 +45,7 @@ const Layout = () => {
       <TagFilterProvider>
         <TopEpisodesProvider>
           <EpisodeComposerProvider>
+            <CommunityIndexSync />
             <div className="app-shell">
               <header className="surface app-shell__header">
                 <AppHeader />
@@ -77,7 +82,7 @@ const Layout = () => {
                         <>
                           <AppSidebar side="right" />
                           <small className="app-shell__sidebar-footer">
-                            app v.1.0
+                            app v.{version}
                           </small>
                         </>
                       )}
@@ -93,6 +98,7 @@ const Layout = () => {
                 )}
 
                 <main className="app-shell__main">
+                  <PublicationRecoveryPanel />
                   <Outlet />
                 </main>
 
@@ -100,11 +106,12 @@ const Layout = () => {
                   <aside className="surface app-shell__sidebar">
                     <AppSidebar side="right" />
                     <small className="app-shell__sidebar-footer">
-                      app v.1.0
+                      app v.{version}
                     </small>
                   </aside>
                 ) : null}
               </div>
+              <ComposerHost />
               <FloatingMiniPlayer />
             </div>
           </EpisodeComposerProvider>

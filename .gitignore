@@ -23,3 +23,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local regression test bundle
+.test-build/
+
+# Generated GitHub release packages
+release-assets/

@@ -1,4 +1,6 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { usePodcastCrud } from '../hooks/usePodcastCrud';
+import { mapConcurrent } from '../../../services/qortal/mapConcurrent';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { PodcastEpisode } from '../../../types/podcast';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { PlaylistMap } from '../hooks/usePodcastSocial';
@@ -35,6 +37,48 @@ const PlaylistPanel = ({
   thumbnailUrls,
 }: PlaylistPanelProps) => {
   const { isCurrentEpisode, isPlaying, isPlayerOpen } = useGlobalPlayback();
+  const { findEpisodeByKey } = usePodcastCrud('', false);
+  const [resolvedEpisodes, setResolvedEpisodes] = useState<
+    Record<string, PodcastEpisode>
+  >({});
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedEpisodes({});
+    const keys = Array.from(new Set(Object.values(playlists).flat())).filter(
+      (key) => !episodeIndex[key]
+    );
+    void mapConcurrent(keys, 2, async (key) => {
+      try {
+        const episode = await findEpisodeByKey(key);
+        if (episode && !cancelled)
+          setResolvedEpisodes((previous) => ({ ...previous, [key]: episode }));
+      } catch {
+        if (!cancelled)
+          setLocalError(
+            'Some playlist episodes could not be loaded. Reopen the playlist to retry.'
+          );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [playlists, episodeIndex, findEpisodeByKey, activeName]);
+  const run = async (action: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    setLocalError(null);
+    try {
+      await action();
+    } catch (error) {
+      setLocalError(
+        error instanceof Error ? error.message : 'Playlist operation failed.'
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
 
@@ -71,7 +115,10 @@ const PlaylistPanel = ({
 
       <form
         className="playlist-panel__create"
-        onSubmit={(event) => void handleCreate(event)}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void run(() => handleCreate(event));
+        }}
       >
         <input
           type="text"
@@ -80,7 +127,7 @@ const PlaylistPanel = ({
           placeholder="New playlist name"
           required
         />
-        <button type="submit" disabled={isLoading}>
+        <button type="submit" disabled={isLoading || busy}>
           Create
         </button>
       </form>
@@ -100,8 +147,8 @@ const PlaylistPanel = ({
 
         <button
           type="button"
-          onClick={() => void handleAddFeatured()}
-          disabled={!selectedPlaylist || !featuredEpisode || isLoading}
+          onClick={() => void run(handleAddFeatured)}
+          disabled={!selectedPlaylist || !featuredEpisode || isLoading || busy}
         >
           Add featured episode
         </button>
@@ -116,11 +163,13 @@ const PlaylistPanel = ({
             ) : null}
             <ul>
               {(playlists[name] ?? []).map((episodeKey) => {
-                const episode = episodeIndex[episodeKey];
+                const episode =
+                  episodeIndex[episodeKey] ?? resolvedEpisodes[episodeKey];
                 return (
                   <li key={episodeKey}>
                     <div className="playlist-panel__episode">
                       <EpisodeThumbnail
+                        episode={episode}
                         src={thumbnailUrls[episodeKey] ?? null}
                         alt={
                           episode
@@ -146,7 +195,9 @@ const PlaylistPanel = ({
                     <button
                       className="playlist-panel__action"
                       type="button"
-                      onClick={() => void onRemoveEpisode(name, episodeKey)}
+                      onClick={() =>
+                        void run(() => onRemoveEpisode(name, episodeKey))
+                      }
                     >
                       Remove
                     </button>
@@ -158,6 +209,7 @@ const PlaylistPanel = ({
         ))}
       </div>
 
+      {localError && <p role="alert">{localError}</p>}
       {error ? <p className="playlist-panel__error">{error}</p> : null}
     </div>
   );

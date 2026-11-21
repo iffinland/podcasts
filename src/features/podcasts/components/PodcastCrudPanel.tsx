@@ -77,6 +77,7 @@ const PodcastCrudPanel = ({
               <div>
                 <div className="podcast-crud__item-head">
                   <EpisodeThumbnail
+                    episode={episode}
                     src={thumbnailUrls[episodeKey] ?? null}
                     alt={`${episode.title} thumbnail`}
                     size="md"

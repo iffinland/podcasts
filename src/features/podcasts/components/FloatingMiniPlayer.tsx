@@ -1,4 +1,11 @@
-import { MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { forgetMediaReady } from '../../../services/media/qdnMedia';
 import { getThumbnailResourceUrl } from '../../../services/qdn/podcastQdnService';
 import { useGlobalPlayback } from '../context/GlobalPlaybackContext';
 import { toEpisodeKey } from '../hooks/podcastKeys';
@@ -15,9 +22,12 @@ const PLAYER_WIDTH = 320;
 const PLAYER_HEIGHT = 168;
 const EDGE_GAP = 12;
 
-const clampPosition = (position: Position): Position => {
-  const maxX = Math.max(EDGE_GAP, window.innerWidth - PLAYER_WIDTH - EDGE_GAP);
-  const maxY = Math.max(EDGE_GAP, window.innerHeight - PLAYER_HEIGHT - EDGE_GAP);
+const clampPosition = (
+  position: Position,
+  size = { width: PLAYER_WIDTH, height: PLAYER_HEIGHT }
+): Position => {
+  const maxX = Math.max(EDGE_GAP, window.innerWidth - size.width - EDGE_GAP);
+  const maxY = Math.max(EDGE_GAP, window.innerHeight - size.height - EDGE_GAP);
 
   return {
     x: Math.min(Math.max(position.x, EDGE_GAP), maxX),
@@ -52,28 +62,50 @@ const readStoredPosition = (): Position => {
 
 const FloatingMiniPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<HTMLElement | null>(null);
+  const playerSize = useRef({ width: PLAYER_WIDTH, height: PLAYER_HEIGHT });
   const dragOffsetRef = useRef<Position | null>(null);
-  const [position, setPosition] = useState<Position>(() => readStoredPosition());
+  const [position, setPosition] = useState<Position>(() =>
+    readStoredPosition()
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [thumbnailKey, setThumbnailKey] = useState<string | null>(null);
   const {
     currentEpisode,
+    playEpisode,
     audioUrl,
     isPlayerOpen,
     isAudioLoading,
+    mediaProgress,
     isPlaying,
     playbackError,
     autoPlaySignal,
     closePlayer,
     setPlayingState,
+    setBuffering,
     setPlaybackError,
   } = useGlobalPlayback();
 
   useEffect(() => {
+    const element = playerRef.current;
+    if (!element) return;
+    const adjust = () => {
+      const rect = element.getBoundingClientRect();
+      playerSize.current = { width: rect.width, height: rect.height };
+      setPosition((previous) => clampPosition(previous, playerSize.current));
+    };
+    adjust();
+    const observer =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(adjust) : null;
+    observer?.observe(element);
+    return () => observer?.disconnect();
+  }, [isPlayerOpen]);
+
+  useEffect(() => {
     const handleResize = () => {
-      setPosition((previous) => clampPosition(previous));
+      setPosition((previous) => clampPosition(previous, playerSize.current));
     };
 
     window.addEventListener('resize', handleResize);
@@ -83,23 +115,46 @@ const FloatingMiniPlayer = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(position));
-  }, [position]);
+    if (isDragging) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(position));
+    } catch {
+      /* Storage can be unavailable in embedded browsers. */
+    }
+  }, [position, isDragging]);
 
   useEffect(() => {
     if (!isPlayerOpen || !audioRef.current || !audioUrl) {
       return;
     }
 
-    void audioRef.current.play().catch((error) => {
+    const audio = audioRef.current;
+    let active = true;
+    void audio.play().catch((error) => {
+      if (!active || audioRef.current !== audio) return;
       const message =
         error instanceof Error
           ? error.message
-          : 'Playback was blocked by the browser.';
-      setPlaybackError(message);
+          : 'Press Play to start listening.';
+      setPlaybackError(
+        error?.name === 'NotAllowedError'
+          ? 'Audio ready. Press Play to start listening.'
+          : message
+      );
       setPlayingState(false);
+      setBuffering(false);
     });
-  }, [audioUrl, autoPlaySignal, isPlayerOpen, setPlaybackError, setPlayingState]);
+    return () => {
+      active = false;
+    };
+  }, [
+    audioUrl,
+    autoPlaySignal,
+    isPlayerOpen,
+    setPlaybackError,
+    setPlayingState,
+    setBuffering,
+  ]);
 
   useEffect(() => {
     if (!currentEpisode || !isDetailsOpen) {
@@ -139,15 +194,18 @@ const FloatingMiniPlayer = () => {
       return;
     }
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handleMouseMove = (event: PointerEvent) => {
       if (!dragOffsetRef.current) {
         return;
       }
 
-      const next = clampPosition({
-        x: event.clientX - dragOffsetRef.current.x,
-        y: event.clientY - dragOffsetRef.current.y,
-      });
+      const next = clampPosition(
+        {
+          x: event.clientX - dragOffsetRef.current.x,
+          y: event.clientY - dragOffsetRef.current.y,
+        },
+        playerSize.current
+      );
       setPosition(next);
     };
 
@@ -156,12 +214,12 @@ const FloatingMiniPlayer = () => {
       dragOffsetRef.current = null;
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('pointermove', handleMouseMove);
+    window.addEventListener('pointerup', handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('pointermove', handleMouseMove);
+      window.removeEventListener('pointerup', handleMouseUp);
     };
   }, [isDragging]);
 
@@ -176,7 +234,7 @@ const FloatingMiniPlayer = () => {
     return null;
   }
 
-  const handleDragStart = (event: ReactMouseEvent<HTMLDivElement>) => {
+  const handleDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.parentElement?.getBoundingClientRect();
     if (!rect) {
       return;
@@ -201,24 +259,64 @@ const FloatingMiniPlayer = () => {
   return (
     <>
       <section
+        ref={playerRef}
         className={`floating-mini-player surface${isDragging ? ' is-dragging' : ''}`}
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
       >
-        <div className="floating-mini-player__drag-handle" onMouseDown={handleDragStart}>
+        <div
+          className="floating-mini-player__drag-handle"
+          onPointerDown={handleDragStart}
+          style={{ touchAction: 'none' }}
+        >
           Mini Player
         </div>
         <p className="floating-mini-player__title" title={titleText}>
           {titleText}
         </p>
         <audio
+          key={`${currentEpisode.ownerName}::${currentEpisode.episodeId}::${currentEpisode.updatedAt}`}
           ref={audioRef}
           controls
           preload="none"
           src={audioUrl ?? undefined}
-          onPlay={() => setPlayingState(true)}
-          onPause={() => setPlayingState(false)}
-          onError={() => {
-            setPlaybackError('Audio playback failed.');
+          onWaiting={(event) => {
+            if (event.currentTarget === audioRef.current && audioUrl)
+              setBuffering(true);
+          }}
+          onStalled={(event) => {
+            if (event.currentTarget === audioRef.current && audioUrl)
+              setBuffering(true);
+          }}
+          onCanPlay={(event) => {
+            if (event.currentTarget === audioRef.current && audioUrl)
+              setBuffering(false);
+          }}
+          onPlaying={(event) => {
+            if (event.currentTarget !== audioRef.current || !audioUrl) return;
+            setBuffering(false);
+            setPlayingState(true);
+          }}
+          onEnded={(event) => {
+            if (event.currentTarget !== audioRef.current || !audioUrl) return;
+            setPlayingState(false);
+            setBuffering(false);
+          }}
+          onPlay={(event) => {
+            if (event.currentTarget === audioRef.current) {
+              setPlaybackError(null);
+              setPlayingState(true);
+            }
+          }}
+          onPause={(event) => {
+            if (event.currentTarget === audioRef.current)
+              setPlayingState(false);
+          }}
+          onError={(event) => {
+            if (event.currentTarget !== audioRef.current || !audioUrl) return;
+            setBuffering(false);
+            setPlaybackError(
+              'Audio is not available yet. Use Retry to request it again.'
+            );
             setPlayingState(false);
           }}
         />
@@ -226,11 +324,35 @@ const FloatingMiniPlayer = () => {
           <button type="button" onClick={() => setIsDetailsOpen(true)}>
             View Details
           </button>
+          {playbackError && !playbackError.startsWith('Audio ready.') && (
+            <button
+              type="button"
+              onClick={() => {
+                const episode = currentEpisode;
+                forgetMediaReady(episode.audio, episode.updatedAt);
+                closePlayer();
+                void playEpisode(episode);
+              }}
+            >
+              Retry
+            </button>
+          )}
           <button type="button" onClick={handleClose}>
             Close
           </button>
         </div>
-        {isAudioLoading ? <small>Loading audio...</small> : null}
+        {isAudioLoading ? (
+          <small role="status">
+            {mediaProgress?.message ?? 'Loading audio...'}
+          </small>
+        ) : null}
+        {isAudioLoading && mediaProgress?.percent !== undefined ? (
+          <progress
+            max={100}
+            value={mediaProgress.percent}
+            aria-label="QDN download progress"
+          />
+        ) : null}
         {playbackError ? (
           <small className="floating-mini-player__error">{playbackError}</small>
         ) : null}

@@ -1,3 +1,6 @@
+import CatalogStatus from '../components/CatalogStatus';
+import { ensureCompleteCatalog } from '../hooks/usePodcastCrud';
+import { matchesPodcastFilters } from '../utils/catalogFilters';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import EpisodeThumbnail from '../components/EpisodeThumbnail';
 import EmbedCodeModal from '../components/EmbedCodeModal';
@@ -33,11 +36,6 @@ import './browse-episodes-page.css';
 const PAGE_SIZE = 20;
 const MAX_VISIBLE_PAGE_BUTTONS = 7;
 
-type TagAccumulator = {
-  count: number;
-  label: string;
-};
-
 type SortOrder = 'title-asc' | 'title-desc' | 'owner-asc' | 'owner-desc';
 
 const getVisiblePageNumbers = (current: number, total: number): number[] => {
@@ -59,36 +57,38 @@ const getVisiblePageNumbers = (current: number, total: number): number[] => {
 
 const BrowseEpisodesPage = () => {
   const { activeName } = useIdentity();
-  const { playEpisode, currentEpisode, isCurrentEpisode, isPlaying, isPlayerOpen } =
-    useGlobalPlayback();
+  const {
+    playEpisode,
+    currentEpisode,
+    isCurrentEpisode,
+    isPlaying,
+    isPlayerOpen,
+  } = useGlobalPlayback();
   const composer = useEpisodeComposer();
   const social = usePodcastSocial(activeName);
   const engagement = useEpisodeEngagement(activeName);
+  const { mapLikesSetByKey } = engagement;
   const {
     episodes,
     isLoading,
     error,
-    resolveThumbnailUrl,
+    catalogComplete,
+    catalogLoading,
+    loadEpisodes,
     resolveAudioUrl,
     findEpisodeByKey,
   } = usePodcastCrud();
   const {
     selectedTags,
     setSelectedTags,
-    setTopTags,
-    setAllTags,
     selectedCategory,
     setSelectedCategory,
     allCategories,
-    setTopCategories,
-    setAllCategories,
   } = useTagFilter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('title-asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [thumbnailUrls, setThumbnailUrls] = useState<
-    Record<string, string | null>
-  >({});
+  const thumbnailUrls: Record<string, string | null> = {};
   const [detailsEpisode, setDetailsEpisode] = useState<PodcastEpisode | null>(
     null
   );
@@ -98,117 +98,19 @@ const BrowseEpisodesPage = () => {
   const [isHtmlEmbedLoading, setIsHtmlEmbedLoading] = useState(false);
 
   useEffect(() => {
-    const missing = episodes.filter((episode) => {
-      const key = `${episode.ownerName}-${episode.episodeId}`;
-      return !(key in thumbnailUrls);
-    });
-
-    if (missing.length === 0) {
-      return;
-    }
-
-    let cancelled = false;
-
-    void Promise.all(
-      missing.map(async (episode) => {
-        const key = `${episode.ownerName}-${episode.episodeId}`;
-        try {
-          const url = await resolveThumbnailUrl(episode);
-          return { key, url };
-        } catch {
-          return { key, url: null };
-        }
-      })
-    ).then((results) => {
-      if (cancelled) {
-        return;
-      }
-
-      setThumbnailUrls((previous) => {
-        const next = { ...previous };
-        results.forEach(({ key, url }) => {
-          next[key] = url;
-        });
-        return next;
-      });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [episodes, resolveThumbnailUrl, thumbnailUrls]);
-
-  useEffect(() => {
-    const categoryCounts = episodes.reduce<Map<string, number>>(
-      (accumulator, episode) => {
-        episode.categories.forEach((category) => {
-          accumulator.set(category, (accumulator.get(category) ?? 0) + 1);
-        });
-        return accumulator;
-      },
-      new Map<string, number>()
-    );
-
-    const rankedCategories = Array.from(categoryCounts.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort(
-        (first, second) =>
-          second.count - first.count || first.name.localeCompare(second.name)
-      );
-
-    setAllCategories(rankedCategories);
-    setTopCategories(rankedCategories.slice(0, 6));
-  }, [episodes, setAllCategories, setTopCategories]);
-
-  useEffect(() => {
-    const map = episodes.reduce<Map<string, TagAccumulator>>(
-      (accumulator, episode) => {
-        episode.tags.forEach((tag) => {
-          const normalized = tag.toLowerCase();
-          const existing = accumulator.get(normalized);
-          if (existing) {
-            existing.count += 1;
-            return;
-          }
-
-          accumulator.set(normalized, { count: 1, label: tag });
-        });
-        return accumulator;
-      },
-      new Map<string, TagAccumulator>()
-    );
-
-    const ranked = Array.from(map.entries())
-      .sort(([, left], [, right]) => right.count - left.count)
-      .map(([, value]) => ({
-        tag: value.label,
-        count: value.count,
-      }));
-
-    setAllTags(ranked);
-    setTopTags(ranked.slice(0, 8));
-  }, [episodes, setAllTags, setTopTags]);
+    void ensureCompleteCatalog();
+  }, []);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const filteredEpisodes = useMemo(() => {
-    const filtered = episodes.filter((episode) => {
-      const categoryMatches =
-        !selectedCategory || episode.categories.includes(selectedCategory);
-      const tagsMatch =
-        selectedTags.length === 0 ||
-        selectedTags.every((tag) =>
-          episode.tags.some(
-            (episodeTag) => episodeTag.toLowerCase() === tag.toLowerCase()
-          )
-        );
-      const searchable =
-        `${episode.title} ${episode.description} ${episode.ownerName}`.toLowerCase();
-      const searchMatches =
-        normalizedQuery.length === 0 || searchable.includes(normalizedQuery);
-
-      return categoryMatches && tagsMatch && searchMatches;
-    });
+    const filtered = episodes.filter((episode) =>
+      matchesPodcastFilters(episode, {
+        query: normalizedQuery,
+        category: selectedCategory,
+        tags: selectedTags,
+      })
+    );
 
     return filtered.sort((left, right) => {
       if (sortOrder === 'owner-asc' || sortOrder === 'owner-desc') {
@@ -234,13 +136,7 @@ const BrowseEpisodesPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    selectedCategory,
-    selectedTags,
-    searchQuery,
-    sortOrder,
-    filteredEpisodes.length,
-  ]);
+  }, [selectedCategory, selectedTags, searchQuery, sortOrder]);
 
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * PAGE_SIZE;
@@ -295,9 +191,18 @@ const BrowseEpisodesPage = () => {
   };
 
   const handleDownload = (episode: PodcastEpisode) => {
-    void resolveAudioUrl(episode).then((audioUrl) => {
-      triggerFileDownload(audioUrl, buildDownloadFilename(episode.title));
-    });
+    void resolveAudioUrl(episode)
+      .then((audioUrl) => {
+        triggerFileDownload(
+          audioUrl,
+          buildDownloadFilename(episode.title, episode.audio.filename)
+        );
+      })
+      .catch((error) =>
+        window.alert(
+          error instanceof Error ? error.message : 'Download failed.'
+        )
+      );
   };
 
   const handleOpenSharedEpisode = useCallback(
@@ -357,12 +262,13 @@ const BrowseEpisodesPage = () => {
   }, [embedEpisode, resolveAudioUrl]);
 
   const likedByEpisodeKey = useMemo(() => {
-    return engagement.mapLikesSetByKey(episodes);
-  }, [engagement.mapLikesSetByKey, episodes]);
+    return mapLikesSetByKey(episodes);
+  }, [mapLikesSetByKey, episodes]);
 
   return (
     <>
       <SendTipModal
+        senderKey={activeName ?? undefined}
         isOpen={Boolean(tipEpisode)}
         publisherName={tipEpisode?.ownerName ?? null}
         onSent={async (amount) => {
@@ -405,7 +311,9 @@ const BrowseEpisodesPage = () => {
             : null
         }
         isLiked={
-          detailsEpisode ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode)) : false
+          detailsEpisode
+            ? likedByEpisodeKey.has(toEpisodeKey(detailsEpisode))
+            : false
         }
         disableEngagement={!activeName}
         onLike={handleLike}
@@ -421,7 +329,8 @@ const BrowseEpisodesPage = () => {
           <h2>Browse All Episodes</h2>
           <p>
             Showing {pageEpisodes.length === 0 ? 0 : startIndex + 1}-
-            {startIndex + pageEpisodes.length} of {filteredEpisodes.length}
+            {startIndex + pageEpisodes.length} of {filteredEpisodes.length}{' '}
+            matches found
           </p>
         </header>
 
@@ -430,7 +339,7 @@ const BrowseEpisodesPage = () => {
             Search
             <input
               type="text"
-              placeholder="Title, description, @name"
+              placeholder="Title, full description, @name, tag or category"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
@@ -477,10 +386,22 @@ const BrowseEpisodesPage = () => {
           </button>
         </div>
 
-        {isLoading ? <p>Loading episodes...</p> : null}
+        <button
+          type="button"
+          disabled={isLoading || catalogLoading}
+          onClick={() => void loadEpisodes()}
+        >
+          Refresh
+        </button>
+        <CatalogStatus />
+        {isLoading ? <p role="status">Loading episodes...</p> : null}
         {error ? <p className="browse-episodes__error">{error}</p> : null}
         {!isLoading && pageEpisodes.length === 0 ? (
-          <p>No episodes found for current filters.</p>
+          <p>
+            {catalogComplete
+              ? 'No episodes found for current filters.'
+              : 'No matches among the episodes checked so far. The full catalog has not been completely checked.'}
+          </p>
         ) : null}
 
         <div className="browse-episodes__list">
@@ -489,6 +410,7 @@ const BrowseEpisodesPage = () => {
             return (
               <article key={key} className="browse-episodes__item">
                 <EpisodeThumbnail
+                  episode={episode}
                   src={thumbnailUrls[key] ?? null}
                   alt={`${episode.title} thumbnail`}
                   size="sm"
@@ -496,7 +418,9 @@ const BrowseEpisodesPage = () => {
                 <div className="browse-episodes__item-text">
                   <h3>{episode.title}</h3>
                   {(() => {
-                    const preview = buildQortalAwarePreview(episode.description);
+                    const preview = buildQortalAwarePreview(
+                      episode.description
+                    );
                     return (
                       <p>
                         {renderQortalLinkedText(preview.text)}
